@@ -122,7 +122,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 20),
+                // Tombol Kembali ke Halaman Login
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: Colors.white,
+                    ),
+                    tooltip: 'Kembali',
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
 
                 Center(
                   child: Image.asset(
@@ -133,7 +149,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 28),
 
                 // Judul
                 Text(
