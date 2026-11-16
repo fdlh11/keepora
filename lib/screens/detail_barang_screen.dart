@@ -208,6 +208,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             label,
@@ -318,26 +319,29 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildInfoBox(
-                            label: 'Tanggal Pembelian',
-                            value:
-                                widget.device['purchaseDate'] ??
-                                '15 Agustus 2026',
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: _buildInfoBox(
+                              label: 'Tanggal Pembelian',
+                              value:
+                                  widget.device['purchaseDate'] ??
+                                  '15 Agustus 2026',
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildInfoBox(
-                            label: 'Harga Pembelian',
-                            value:
-                                widget.device['purchasePrice'] ??
-                                'Rp 4.450.000',
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildInfoBox(
+                              label: 'Harga Pembelian',
+                              value:
+                                  widget.device['purchasePrice'] ??
+                                  'Rp 4.450.000',
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 18),
 
@@ -390,24 +394,27 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildInfoBox(
-                            label: 'Tanggal Perawatan Terakhir',
-                            value: widget.device['lastMaintenance'] ?? '-',
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: _buildInfoBox(
+                              label: 'Tanggal Perawatan Terakhir',
+                              value: widget.device['lastMaintenance'] ?? '-',
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildInfoBox(
-                            label: 'Biaya Perawatan Terakhir',
-                            value:
-                                widget.device['lastMaintenanceCost'] ??
-                                'Rp 350.000',
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildInfoBox(
+                              label: 'Biaya Perawatan Terakhir',
+                              value:
+                                  widget.device['lastMaintenanceCost'] ??
+                                  'Rp 350.000',
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 18),
 
