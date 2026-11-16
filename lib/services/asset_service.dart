@@ -13,7 +13,11 @@ class AssetService {
     return _firestore.collection('users').doc(uid).collection('assets');
   }
 
-  // Datfar barang milik user
+  // ===========================================================================
+  // CRUD DATA BARANG (ASSETS)
+  // ===========================================================================
+
+  // Daftar barang milik user (Read)
   Stream<QuerySnapshot> getAssetsStream() {
     final uid = _auth.currentUser?.uid;
     if (uid == null) {
@@ -22,7 +26,7 @@ class AssetService {
     return _assetsRef.orderBy('createdAt', descending: true).snapshots();
   }
 
-  // Tambah barang baru
+  // Tambah barang baru (Create)
   Future<void> addAsset(Map<String, dynamic> data) async {
     await _assetsRef.add({
       ...data,
@@ -31,7 +35,7 @@ class AssetService {
     });
   }
 
-  // Perbarui data barang, kondisi perangkat/rincian perawatan
+  // Perbarui data barang, kondisi perangkat/rincian perawatan (Update)
   Future<void> updateAsset(String docId, Map<String, dynamic> data) async {
     await _assetsRef.doc(docId).update({
       ...data,
@@ -39,12 +43,38 @@ class AssetService {
     });
   }
 
-  // Hapus barang
+  // Hapus barang beserta sub-koleksi riwayat perawatannya (Delete)
   Future<void> deleteAsset(String docId) async {
-    await _assetsRef.doc(docId).delete();
+    final assetRef = _assetsRef.doc(docId);
+    final historySnapshot =
+        await assetRef.collection('maintenance_history').get();
+
+    final batch = _firestore.batch();
+    for (final doc in historySnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    batch.delete(assetRef);
+    await batch.commit();
   }
 
-  /// Menambahkan riwayat perawatan baru dan memperbarui ringkasan perawatan terakhir pada barang
+  // ===========================================================================
+  // CRUD RIWAYAT PERAWATAN (MAINTENANCE HISTORY)
+  // ===========================================================================
+
+  // Read: Ambil semua riwayat perawatan user untuk halaman Riwayat
+  Stream<QuerySnapshot> getAllMaintenanceHistoryStream() {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) {
+      return const Stream.empty();
+    }
+    return _firestore
+        .collectionGroup('maintenance_history')
+        .where('userId', isEqualTo: uid)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  // Create: Menambahkan riwayat perawatan baru & update ringkasan barang
   Future<void> addMaintenanceRecord({
     required String assetId,
     required String assetName,
@@ -54,17 +84,14 @@ class AssetService {
   }) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) throw Exception('Pengguna belum login');
-    final assetRef = _firestore
-        .collection('users')
-        .doc(uid)
-        .collection('assets')
-        .doc(assetId);
+    final assetRef = _assetsRef.doc(assetId);
 
     final batch = _firestore.batch();
 
-    // simpan ke sub koleksi riwayat perawatab
+    // Simpan ke sub-koleksi riwayat perawatan
     final historyRef = assetRef.collection('maintenance_history').doc();
     batch.set(historyRef, {
+      'userId': uid,
       'assetId': assetId,
       'assetName': assetName,
       'maintenanceDate': maintenanceDate,
@@ -73,7 +100,7 @@ class AssetService {
       'createdAt': FieldValue.serverTimestamp(),
     });
 
-    // perbarui perawatan terakhir
+    // Perbarui perawatan terakhir pada dokumen barang
     batch.update(assetRef, {
       'lastMaintenance': maintenanceDate,
       'lastMaintenanceCost': cost,
@@ -84,7 +111,43 @@ class AssetService {
     await batch.commit();
   }
 
-  // Mengambil daftar jadwal perawatan secara real-time
+  // Update: Edit catatan riwayat perawatan yang sudah ada
+  Future<void> updateMaintenanceRecord({
+    required String assetId,
+    required String historyId,
+    required String maintenanceDate,
+    required String cost,
+    required String detail,
+  }) async {
+    await _assetsRef
+        .doc(assetId)
+        .collection('maintenance_history')
+        .doc(historyId)
+        .update({
+          'maintenanceDate': maintenanceDate,
+          'cost': cost,
+          'detail': detail,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+  }
+
+  // Delete: Hapus satu catatan riwayat perawatan
+  Future<void> deleteMaintenanceRecord({
+    required String assetId,
+    required String historyId,
+  }) async {
+    await _assetsRef
+        .doc(assetId)
+        .collection('maintenance_history')
+        .doc(historyId)
+        .delete();
+  }
+
+  // ===========================================================================
+  // CRUD JADWAL PERAWATAN (SCHEDULES)
+  // ===========================================================================
+
+  // Read: Mengambil daftar jadwal perawatan secara real-time
   Stream<QuerySnapshot> getSchedulesStream() {
     final user = _auth.currentUser;
     if (user == null) {
@@ -98,7 +161,7 @@ class AssetService {
         .snapshots();
   }
 
-  // Menambahkan jadwal perawatan baru
+  // Create: Menambahkan jadwal perawatan baru
   Future<void> addSchedule(Map<String, dynamic> scheduleData) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception('Pengguna belum masuk.');
@@ -114,12 +177,32 @@ class AssetService {
         });
   }
 
-  // Menandai jadwal perawatan selesai & memperbarui status terakhir barang
+  // Update: Edit jadwal perawatan
+  Future<void> updateSchedule(
+    String scheduleId,
+    Map<String, dynamic> data,
+  ) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Pengguna belum masuk.');
+
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('schedules')
+        .doc(scheduleId)
+        .update({
+          ...data,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+  }
+
+  // Update: Menandai jadwal perawatan selesai & mencatat ke riwayat barang
   Future<void> completeSchedule({
     required String scheduleId,
     required String assetId,
     required String maintenanceTitle,
     required String dateFormatted,
+    String assetName = '',
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception('Pengguna belum masuk.');
@@ -138,19 +221,22 @@ class AssetService {
       await assetRef.update({
         'lastMaintenance': dateFormatted,
         'maintenanceDetail': maintenanceTitle,
+        'updatedAt': FieldValue.serverTimestamp(),
       });
 
       await assetRef.collection('maintenance_history').add({
-        'title': maintenanceTitle,
-        'date': dateFormatted,
+        'userId': user.uid,
+        'assetId': assetId,
+        'assetName': assetName,
+        'maintenanceDate': dateFormatted,
         'cost': 'Rp 0',
-        'notes': 'Diselesaikan dari jadwal perawatan.',
+        'detail': maintenanceTitle,
         'createdAt': FieldValue.serverTimestamp(),
       });
     }
   }
 
-  // Menghapus jadwal perawatan
+  // Delete: Menghapus jadwal perawatan
   Future<void> deleteSchedule(String scheduleId) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception('Pengguna belum masuk.');
