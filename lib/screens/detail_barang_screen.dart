@@ -477,10 +477,9 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
         final name = (data['name'] ?? '-').toString();
         final category = (data['category'] ?? 'Umum').toString();
         final photoUrl = (data['photoUrl'] ?? '').toString();
+        final purchaseType = (data['purchaseType'] ?? 'Baru').toString();
         final purchaseDate = (data['purchaseDate'] ?? '-').toString();
         final purchasePrice = (data['purchasePrice'] ?? 'Rp 0').toString();
-        final secondHandDate =
-            (data['secondHandPurchaseDate'] ?? '').toString();
         final lastMaintenance = (data['lastMaintenance'] ?? '-').toString();
         final lastMaintenanceCost =
             (data['lastMaintenanceCost'] ?? 'Rp 0').toString();
@@ -607,7 +606,9 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                           children: [
                             Expanded(
                               child: _whiteInfoCard(
-                                label: 'Tanggal Pembelian',
+                                label: purchaseType == 'Second'
+                                    ? 'Tanggal Pembelian (Second)'
+                                    : 'Tanggal Pembelian',
                                 value: purchaseDate,
                               ),
                             ),
@@ -620,13 +621,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                             ),
                           ],
                         ),
-                        if (secondHandDate.isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          _whiteInfoCard(
-                            label: 'Tanggal Pembelian (Barang Second)',
-                            value: secondHandDate,
-                          ),
-                        ],
                         const SizedBox(height: 18),
 
                         // Kondisi Barang (Dapat Diedit Langsung)

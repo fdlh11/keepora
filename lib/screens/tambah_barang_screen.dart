@@ -180,6 +180,10 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
   }
 
   Future<void> _pickDate({required bool isSecondHand}) async {
+    // Cegah buka picker jika tanggal lawannya sudah terisi
+    if (!isSecondHand && _secondHandPurchaseDate != null) return;
+    if (isSecondHand && _purchaseDate != null) return;
+
     final now = DateTime.now();
     final initial = isSecondHand
         ? (_secondHandPurchaseDate ?? now)
@@ -208,8 +212,10 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
       setState(() {
         if (isSecondHand) {
           _secondHandPurchaseDate = picked;
+          _purchaseDate = null;
         } else {
           _purchaseDate = picked;
+          _secondHandPurchaseDate = null;
         }
       });
     }
@@ -228,10 +234,12 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
       return;
     }
 
-    if (_purchaseDate == null) {
+    if (_purchaseDate == null && _secondHandPurchaseDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Silakan pilih tanggal beli terlebih dahulu.'),
+          content: Text(
+            'Silakan pilih Tanggal Beli (baru) atau Tanggal Pembelian (Barang Second).',
+          ),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -245,15 +253,19 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
       final formattedPrice =
           rawPrice.isEmpty ? 'Rp 0' : 'Rp ${_formatRibuan(rawPrice)}';
 
+      final bool isSecondHand = _secondHandPurchaseDate != null;
+      final String activeDateFormatted = isSecondHand
+          ? _formatTanggalIndo(_secondHandPurchaseDate!)
+          : _formatTanggalIndo(_purchaseDate!);
+
       await _assetService.addAsset({
         'name': _nameController.text.trim(),
         'category': _selectedCategory!,
-        'purchaseDate': _formatTanggalIndo(_purchaseDate!),
+        'purchaseType': isSecondHand ? 'Second' : 'Baru',
+        'purchaseDate': activeDateFormatted,
+        'secondHandPurchaseDate': isSecondHand ? activeDateFormatted : '',
         'purchasePrice': formattedPrice,
         'condition': _conditionController.text.trim(),
-        'secondHandPurchaseDate': _secondHandPurchaseDate != null
-            ? _formatTanggalIndo(_secondHandPurchaseDate!)
-            : '',
         'notes': _notesController.text.trim(),
         'photoUrl': '',
         'lastMaintenance': '-',
@@ -317,6 +329,8 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF004AAD);
+    final bool isRegularDisabled = _secondHandPurchaseDate != null;
+    final bool isSecondHandDisabled = _purchaseDate != null;
 
     return PopScope(
       canPop: false,
@@ -455,7 +469,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // 3. Tanggal Beli & Harga Beli
+                  // 3. Tanggal Beli (Baru) & Harga Beli
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -469,12 +483,16 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                               style: GoogleFonts.montserrat(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                color: isRegularDisabled
+                                    ? Colors.grey.shade400
+                                    : Colors.black87,
                               ),
                             ),
                             const SizedBox(height: 6),
                             InkWell(
-                              onTap: () => _pickDate(isSecondHand: false),
+                              onTap: isRegularDisabled
+                                  ? null
+                                  : () => _pickDate(isSecondHand: false),
                               borderRadius: BorderRadius.circular(12),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
@@ -482,7 +500,9 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                                   vertical: 14,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: isRegularDisabled
+                                      ? const Color(0xFFE5E7EB)
+                                      : Colors.white,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: const Color(0xFFD6D6D6),
@@ -492,25 +512,46 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        _purchaseDate == null
-                                            ? 'Tanggal pembelian...'
-                                            : _formatTanggalIndo(
-                                                _purchaseDate!),
+                                        isRegularDisabled
+                                            ? 'Barang second dipilih'
+                                            : (_purchaseDate == null
+                                                ? 'Tanggal pembelian...'
+                                                : _formatTanggalIndo(
+                                                    _purchaseDate!)),
                                         style: TextStyle(
-                                          fontSize: 13,
-                                          color: _purchaseDate == null
+                                          fontSize: 12.5,
+                                          color: isRegularDisabled ||
+                                                  _purchaseDate == null
                                               ? Colors.grey.shade500
                                               : Colors.black87,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                    const SizedBox(width: 4),
-                                    Icon(
-                                      Icons.calendar_today_outlined,
-                                      size: 17,
-                                      color: Colors.grey.shade600,
-                                    ),
+                                    if (_purchaseDate != null)
+                                      GestureDetector(
+                                        onTap: () => setState(
+                                            () => _purchaseDate = null),
+                                        child: Padding(
+                                          padding:
+                                              const EdgeInsets.only(right: 4),
+                                          child: Icon(
+                                            Icons.close_rounded,
+                                            size: 17,
+                                            color: Colors.red.shade400,
+                                          ),
+                                        ),
+                                      )
+                                    else ...[
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        Icons.calendar_today_outlined,
+                                        size: 17,
+                                        color: isRegularDisabled
+                                            ? Colors.grey.shade400
+                                            : Colors.grey.shade600,
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -583,12 +624,16 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     style: GoogleFonts.montserrat(
                       fontSize: 13.5,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: isSecondHandDisabled
+                          ? Colors.grey.shade400
+                          : Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 6),
                   InkWell(
-                    onTap: () => _pickDate(isSecondHand: true),
+                    onTap: isSecondHandDisabled
+                        ? null
+                        : () => _pickDate(isSecondHand: true),
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -596,7 +641,9 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                         vertical: 14,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isSecondHandDisabled
+                            ? const Color(0xFFE5E7EB)
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: const Color(0xFFD6D6D6)),
                       ),
@@ -604,13 +651,16 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              _secondHandPurchaseDate == null
-                                  ? 'Pilih tanggal pembelian BS...'
-                                  : _formatTanggalIndo(
-                                      _secondHandPurchaseDate!),
+                              isSecondHandDisabled
+                                  ? 'Tanggal beli (barang baru) sudah dipilih'
+                                  : (_secondHandPurchaseDate == null
+                                      ? 'Pilih tanggal pembelian BS...'
+                                      : _formatTanggalIndo(
+                                          _secondHandPurchaseDate!)),
                               style: TextStyle(
                                 fontSize: 13,
-                                color: _secondHandPurchaseDate == null
+                                color: isSecondHandDisabled ||
+                                        _secondHandPurchaseDate == null
                                     ? Colors.grey.shade500
                                     : Colors.black87,
                               ),
@@ -621,19 +671,22 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                               onTap: () => setState(
                                   () => _secondHandPurchaseDate = null),
                               child: Padding(
-                                padding: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.only(right: 6),
                                 child: Icon(
-                                  Icons.close,
-                                  size: 17,
-                                  color: Colors.grey.shade600,
+                                  Icons.close_rounded,
+                                  size: 18,
+                                  color: Colors.red.shade400,
                                 ),
                               ),
+                            )
+                          else
+                            Icon(
+                              Icons.calendar_today_outlined,
+                              size: 18,
+                              color: isSecondHandDisabled
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade600,
                             ),
-                          Icon(
-                            Icons.calendar_today_outlined,
-                            size: 18,
-                            color: Colors.grey.shade600,
-                          ),
                         ],
                       ),
                     ),
