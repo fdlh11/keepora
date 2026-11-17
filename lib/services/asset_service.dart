@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class AssetService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   String get _uid {
     final uid = _auth.currentUser?.uid;
@@ -18,6 +22,34 @@ class AssetService {
   CollectionReference get _assetsRef => _userDoc.collection('assets');
 
   CollectionReference get _schedulesRef => _userDoc.collection('schedules');
+
+  // Firebase Storage (Foto Barang)
+
+  Future<String> uploadAssetImage(File imageFile) async {
+    final uid = _uid;
+    final fileName = 'asset_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final ref = _storage
+        .ref()
+        .child('users')
+        .child(uid)
+        .child('assets')
+        .child(fileName);
+
+    final uploadTask = await ref.putFile(
+      imageFile,
+      SettableMetadata(contentType: 'image/jpeg'),
+    );
+    return await uploadTask.ref.getDownloadURL();
+  }
+
+  Future<void> deleteAssetImageByUrl(String photoUrl) async {
+    if (photoUrl.isEmpty) return;
+    try {
+      await _storage.refFromURL(photoUrl).delete();
+    } catch (_) {
+      // Abaikan jika file sudah terhapus atau URL tidak valid
+    }
+  }
 
   // CRUD Data Barang (Assets)
 
@@ -43,6 +75,12 @@ class AssetService {
 
   Future<void> deleteAsset(String docId) async {
     final assetRef = _assetsRef.doc(docId);
+
+    // Ambil photoUrl terlebih dahulu agar foto di Storage ikut terhapus
+    final assetSnap = await assetRef.get();
+    final assetData = assetSnap.data() as Map<String, dynamic>? ?? {};
+    final photoUrl = (assetData['photoUrl'] ?? '').toString();
+
     final historySnapshot =
         await assetRef.collection('maintenance_history').get();
     final schedulesSnapshot =
@@ -57,6 +95,10 @@ class AssetService {
     }
     batch.delete(assetRef);
     await batch.commit();
+
+    if (photoUrl.isNotEmpty) {
+      await deleteAssetImageByUrl(photoUrl);
+    }
   }
 
   // CRUD Riwayat Perawatan (Maintenance History)
