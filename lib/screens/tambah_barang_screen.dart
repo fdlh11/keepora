@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../services/asset_service.dart';
 
@@ -14,12 +17,14 @@ class TambahBarangScreen extends StatefulWidget {
 class _TambahBarangScreenState extends State<TambahBarangScreen> {
   final _formKey = GlobalKey<FormState>();
   final AssetService _assetService = AssetService();
+  final ImagePicker _picker = ImagePicker();
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _conditionController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
+  File? _selectedImage;
   String? _selectedCategory;
   DateTime? _purchaseDate;
   DateTime? _secondHandPurchaseDate;
@@ -59,13 +64,159 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
   }
 
   bool get _hasUnsavedChanges {
-    return _nameController.text.trim().isNotEmpty ||
+    return _selectedImage != null ||
+        _nameController.text.trim().isNotEmpty ||
         _selectedCategory != null ||
         _purchaseDate != null ||
         _priceController.text.trim().isNotEmpty ||
         _conditionController.text.trim().isNotEmpty ||
         _secondHandPurchaseDate != null ||
         _notesController.text.trim().isNotEmpty;
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 1280,
+        maxHeight: 1280,
+        imageQuality: 80,
+      );
+
+      if (pickedFile != null && mounted) {
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengambil foto: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showImageSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                Text(
+                  'Pilih Sumber Foto',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDBEAFE),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt_outlined,
+                      color: Color(0xFF004AAD),
+                    ),
+                  ),
+                  title: const Text(
+                    'Ambil Foto dari Kamera',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  subtitle: const Text(
+                    'Gunakan kamera perangkat untuk memotret barang',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+                const SizedBox(height: 6),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDBEAFE),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.photo_library_outlined,
+                      color: Color(0xFF004AAD),
+                    ),
+                  ),
+                  title: const Text(
+                    'Pilih dari Galeri',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  subtitle: const Text(
+                    'Pilih foto barang yang sudah tersimpan di HP',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+                if (_selectedImage != null) ...[
+                  const SizedBox(height: 6),
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.delete_outline,
+                        color: Colors.red.shade600,
+                      ),
+                    ),
+                    title: Text(
+                      'Hapus Foto Terpilih',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: Colors.red.shade600,
+                      ),
+                    ),
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      setState(() => _selectedImage = null);
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _handleBackPress() async {
@@ -180,7 +331,6 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
   }
 
   Future<void> _pickDate({required bool isSecondHand}) async {
-    // Cegah buka picker jika tanggal lawannya sudah terisi
     if (!isSecondHand && _secondHandPurchaseDate != null) return;
     if (isSecondHand && _purchaseDate != null) return;
 
@@ -249,6 +399,12 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
     setState(() => _isSaving = true);
 
     try {
+      String uploadedPhotoUrl = '';
+      if (_selectedImage != null) {
+        uploadedPhotoUrl =
+            await _assetService.uploadAssetImage(_selectedImage!);
+      }
+
       final rawPrice = _priceController.text.replaceAll('.', '').trim();
       final formattedPrice =
           rawPrice.isEmpty ? 'Rp 0' : 'Rp ${_formatRibuan(rawPrice)}';
@@ -267,7 +423,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
         'purchasePrice': formattedPrice,
         'condition': _conditionController.text.trim(),
         'notes': _notesController.text.trim(),
-        'photoUrl': '',
+        'photoUrl': uploadedPhotoUrl,
         'lastMaintenance': '-',
         'lastMaintenanceCost': 'Rp 0',
         'maintenanceDetail': '',
@@ -366,21 +522,16 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 0. Kotak Unggah Foto Barang
+                  // 0. Kotak Unggah Foto Barang / Pratinjau Foto
                   InkWell(
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Fitur unggah foto akan disambungkan pada tahap polesan UI.',
-                          ),
-                        ),
-                      );
-                    },
+                    onTap: _isSaving ? null : _showImageSourceSheet,
                     borderRadius: BorderRadius.circular(14),
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 22),
+                      height: _selectedImage != null ? 190 : null,
+                      padding: _selectedImage != null
+                          ? EdgeInsets.zero
+                          : const EdgeInsets.symmetric(vertical: 22),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
@@ -389,32 +540,78 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                           width: 1,
                         ),
                       ),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.photo_camera_outlined,
-                            size: 36,
-                            color: primaryBlue,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Unggah Foto Barang',
-                            style: GoogleFonts.montserrat(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.bold,
-                              color: primaryBlue,
+                      child: _selectedImage != null
+                          ? Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(13),
+                                  child: Image.file(
+                                    _selectedImage!,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                Positioned(
+                                  right: 10,
+                                  bottom: 10,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.65),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.edit,
+                                          size: 14,
+                                          color: Colors.white,
+                                        ),
+                                        SizedBox(width: 5),
+                                        Text(
+                                          'Ganti Foto',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              children: [
+                                const Icon(
+                                  Icons.photo_camera_outlined,
+                                  size: 36,
+                                  color: primaryBlue,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Unggah Foto Barang',
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryBlue,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Ambil Foto atau Pilih dari Galeri',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Ambil Foto atau Pilih dari Galeri',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                   const SizedBox(height: 18),
