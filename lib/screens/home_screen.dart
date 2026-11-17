@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/asset_service.dart';
-import '../services/auth_service.dart';
 import 'detail_barang_screen.dart';
-import 'login_screen.dart';
 import 'tambah_barang_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -17,7 +15,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final AssetService _assetService = AssetService();
-  final AuthService _authService = AuthService();
   final TextEditingController _searchController = TextEditingController();
 
   String _searchQuery = '';
@@ -39,52 +36,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _confirmLogout() async {
-    final bool? shouldLogout = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text(
-          'Keluar Akun',
-          style: GoogleFonts.montserrat(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: const Text(
-          'Apakah Anda yakin ingin keluar dari akun Keepora?',
-          style: TextStyle(fontSize: 13.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF004AAD),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Keluar'),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldLogout == true) {
-      await _authService.signOut();
-      if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF004AAD);
@@ -104,13 +55,6 @@ class _HomeScreenState extends State<HomeScreen> {
             color: Colors.black,
           ),
         ),
-        actions: [
-          IconButton(
-            tooltip: 'Keluar Akun',
-            icon: const Icon(Icons.logout_rounded, color: Colors.black87),
-            onPressed: _confirmLogout,
-          ),
-        ],
       ),
       body: Stack(
         children: [
@@ -165,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // Filter Kategori Horizontal
+              // Filter Kategori
               SizedBox(
                 height: 38,
                 child: ListView.separated(
@@ -422,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
 
-          // Tombol + Barang di atas Navbar
+          // Tombol tambah Barang di atas navbar
           Positioned(
             right: 20,
             bottom: 98,

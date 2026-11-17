@@ -561,7 +561,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Banner Foto Barang Lebar Penuh
+                  // Banner Foto Barang Lebar
                   Container(
                     width: double.infinity,
                     height: 205,
@@ -643,7 +643,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                         ),
                         const SizedBox(height: 18),
 
-                        // Kondisi Barang (Dapat Diedit Langsung)
+                        // Kondisi Barang (bisa diedit)
                         Text(
                           'Kondisi Barang',
                           style: GoogleFonts.montserrat(
@@ -695,7 +695,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                         ),
                         const SizedBox(height: 18),
 
-                        // Rincian Perawatan (Dapat Diedit Langsung)
+                        // Rincian Perawatan (Bisa Diedit)
                         Text(
                           'Rincian Perawatan',
                           style: GoogleFonts.montserrat(

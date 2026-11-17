@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'akun_screen.dart';
 import 'home_screen.dart';
 import 'jadwal_screen.dart';
 import 'riwayat_screen.dart';
@@ -25,21 +26,11 @@ class _NavbarScreenState extends State<NavbarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [
-      const HomeScreen(),
-      const JadwalScreen(),
-      const RiwayatScreen(),
-      const _PlaceholderTabScreen(
-        title: 'Riwayat Perawatan',
-        icon: Icons.access_time_rounded,
-        subtitle: 'Halaman Riwayat Perawatan siap dibangun di tahap berikutnya.',
-      ),
-      const _PlaceholderTabScreen(
-        title: 'Akun Saya',
-        icon: Icons.person_outline_rounded,
-        subtitle:
-            'Halaman Profil & Pengaturan Akun siap dibangun di tahap berikutnya.',
-      ),
+    final List<Widget> pages = const [
+      HomeScreen(),     // index 0: Beranda
+      JadwalScreen(),   // index 1: Jadwal
+      RiwayatScreen(),  // index 2: Riwayat
+      AkunScreen(),     // index 3: Akun
     ];
 
     return Scaffold(
@@ -128,64 +119,6 @@ class _NavbarScreenState extends State<NavbarScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PlaceholderTabScreen extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final String subtitle;
-
-  const _PlaceholderTabScreen({
-    required this.title,
-    required this.icon,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF3F4F6),
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          title,
-          style: GoogleFonts.montserrat(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
-        ),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 52, color: const Color(0xFF004AAD)),
-              const SizedBox(height: 14),
-              Text(
-                title,
-                style: GoogleFonts.montserrat(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-              ),
-            ],
-          ),
         ),
       ),
     );
