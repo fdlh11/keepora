@@ -8,7 +8,7 @@ import 'services/auth_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/navbar_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/lupa_password_screen.dart';
 import 'screens/verif_otp_screen.dart';
@@ -65,7 +65,7 @@ class MyApp extends StatelessWidget {
         '/LupaPassword': (context) => const LupaPasswordScreen(),
         '/verifOTP': (context) => const VerifOtpScreen(),
         '/passwordBaru': (context) => const PasswordBaruScreen(),
-        '/home': (context) => const HomeScreen(),
+        '/home': (context) => const NavbarScreen(),
       },
     );
   }
@@ -91,7 +91,7 @@ class AuthWrapper extends StatelessWidget {
         if (snapshot.hasData && snapshot.data != null) {
           User user = snapshot.data!;
           if (user.emailVerified) {
-            return const HomeScreen();
+            return const NavbarScreen();
           }
         }
 
