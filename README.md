@@ -1,6 +1,6 @@
 # keepora
 
-A new Flutter project.
+Aplikasi pencatatan riwayaat perbaikan dan perawatan barang pribadi
 
 ## Getting Started
 
