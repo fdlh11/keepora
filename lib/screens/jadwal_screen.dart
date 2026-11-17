@@ -113,7 +113,15 @@ class _JadwalScreenState extends State<JadwalScreen> {
                 );
               }
 
-              final docs = snapshot.data?.docs ?? [];
+              final docs = [...(snapshot.data?.docs ?? [])]..sort((a, b) {
+                  final dataA = a.data() as Map<String, dynamic>? ?? {};
+                  final dataB = b.data() as Map<String, dynamic>? ?? {};
+                  final tsA = (dataA['scheduledAt'] as Timestamp?)?.toDate() ??
+                      DateTime.now();
+                  final tsB = (dataB['scheduledAt'] as Timestamp?)?.toDate() ??
+                      DateTime.now();
+                  return tsA.compareTo(tsB);
+                });
 
               if (docs.isEmpty) {
                 return Center(
