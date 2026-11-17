@@ -21,9 +21,10 @@ class JadwalService {
 
   // Stream daftar jadwal aktif
   Stream<QuerySnapshot> streamJadwalAktif() {
-    return _schedulesRef
-        .where('status', isEqualTo: 'pending')
-        .orderBy('scheduledAt', descending: false)
+    return _firestore
+        .collection('schedules')
+        .where('userId', isEqualTo: _uid)
+        .where('status', isEqualTo: 'scheduled')
         .snapshots();
   }
 
