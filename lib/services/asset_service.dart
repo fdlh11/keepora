@@ -103,14 +103,21 @@ class AssetService {
 
   // CRUD Riwayat Perawatan (Maintenance History)
 
-  Stream<QuerySnapshot> getAllMaintenanceHistoryStream() {
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) return const Stream.empty();
-    // Tanpa orderBy agar tidak butuh composite index; pengurutan dilakukan lokal di UI
-    return _firestore
-        .collectionGroup('maintenance_history')
-        .where('userId', isEqualTo: uid)
-        .snapshots();
+  Stream<List<QueryDocumentSnapshot>> getAllMaintenanceHistoryStream() {
+    if (_auth.currentUser == null) return const Stream.empty();
+
+    return _assetsRef.snapshots().asyncMap((assetsSnap) async {
+      if (assetsSnap.docs.isEmpty) return <QueryDocumentSnapshot>[];
+
+      final futures = assetsSnap.docs.map(
+        (assetDoc) => assetDoc.reference
+            .collection('maintenance_history')
+            .get(),
+      );
+
+      final snapshots = await Future.wait(futures);
+      return snapshots.expand((snap) => snap.docs).toList();
+    });
   }
 
   Stream<QuerySnapshot> getAssetMaintenanceHistoryStream(String assetId) {
@@ -172,11 +179,11 @@ class AssetService {
     required dynamic cost,
     required String detail,
   }) async {
-    await _assetsRef
-        .doc(assetId)
-        .collection('maintenance_history')
-        .doc(historyId)
-        .update({
+    final batch = _firestore.batch();
+    final assetRef = _assetsRef.doc(assetId);
+    final historyRef = assetRef.collection('maintenance_history').doc(historyId);
+
+    batch.update(historyRef, {
       'title': title.trim(),
       'maintenanceType': maintenanceType,
       'maintenanceDate': maintenanceDate,
@@ -186,17 +193,29 @@ class AssetService {
       'notes': detail.trim(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    // Memicu stream induk agar daftar riwayat langsung refresh otomatis
+    batch.update(assetRef, {
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
   }
 
   Future<void> deleteMaintenanceRecord({
     required String assetId,
     required String historyId,
   }) async {
-    await _assetsRef
-        .doc(assetId)
-        .collection('maintenance_history')
-        .doc(historyId)
-        .delete();
+    final batch = _firestore.batch();
+    final assetRef = _assetsRef.doc(assetId);
+    final historyRef = assetRef.collection('maintenance_history').doc(historyId);
+
+    batch.delete(historyRef);
+    batch.update(assetRef, {
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
   }
 
   // CRUD Jadwal Perawatan (Schedules)

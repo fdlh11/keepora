@@ -70,13 +70,11 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
       }
     }
 
-    // Tambahkan bulan sekarang & 11 bulan terakhir sebagai opsi default
     final now = DateTime.now();
     for (int i = 0; i < 12; i++) {
       addMonth(DateTime(now.year, now.month - i));
     }
 
-    // Tambahkan bulan dari dokumen riwayat yang ada di Firestore
     for (final doc in docs) {
       final data = doc.data() as Map<String, dynamic>? ?? {};
       final dt = _extractDate(data);
@@ -131,19 +129,20 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     return 'Perawatan';
   }
 
-  void _bukaPopupEdit(
+  void _bukaHalamanEdit(
     String assetId,
     String historyId,
     Map<String, dynamic> data,
   ) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black54,
-      builder: (_) => _EditRiwayatDialog(
-        assetId: assetId,
-        historyId: historyId,
-        data: data,
-        assetService: _assetService,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditRiwayatScreen(
+          assetId: assetId,
+          historyId: historyId,
+          data: data,
+          assetService: _assetService,
+        ),
       ),
     );
   }
@@ -169,7 +168,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
           ),
         ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
+      body: StreamBuilder<List<QueryDocumentSnapshot>>(
         stream: _assetService.getAllMaintenanceHistoryStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -192,7 +191,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
           }
 
           final List<QueryDocumentSnapshot> allDocs =
-              List<QueryDocumentSnapshot>.from(snapshot.data?.docs ?? [])
+              List<QueryDocumentSnapshot>.from(snapshot.data ?? [])
                 ..sort((a, b) {
                   final dataA = a.data() as Map<String, dynamic>? ?? {};
                   final dataB = b.data() as Map<String, dynamic>? ?? {};
@@ -208,7 +207,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
             _selectedMonthYear = monthOptions.first;
           }
 
-          // Hitung total pengeluaran pada bulan & tahun yang dipilih
           int totalMonthlySpend = 0;
           for (final doc in allDocs) {
             final data = doc.data() as Map<String, dynamic>? ?? {};
@@ -219,7 +217,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
             }
           }
 
-          // Filter daftar kartu riwayat berdasarkan chip (Semua / Perawatan / Perbaikan)
           final filteredDocs = allDocs.where((doc) {
             final data = doc.data() as Map<String, dynamic>? ?? {};
             final normalizedType = _normalizeCategory(data);
@@ -461,7 +458,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Baris Atas: Badge Tanggal/Jam + Tombol Edit
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -487,7 +483,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                     InkWell(
                                       onTap: assetId.isEmpty
                                           ? null
-                                          : () => _bukaPopupEdit(
+                                          : () => _bukaHalamanEdit(
                                                 assetId,
                                                 doc.id,
                                                 data,
@@ -505,8 +501,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 10),
-
-                                // Judul Perawatan/Perbaikan
                                 Text(
                                   displayTitle,
                                   maxLines: 1,
@@ -518,8 +512,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 2),
-
-                                // Nama Barang
                                 Text(
                                   assetName,
                                   maxLines: 1,
@@ -530,8 +522,6 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 12),
-
-                                // Baris Bawah: Pil Jenis (Perawatan/Perbaikan) + Biaya
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -590,14 +580,15 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   }
 }
 
-// Pop-up Edit Riwayat Perawatan
-class _EditRiwayatDialog extends StatefulWidget {
+// Layar Penuh Edit Riwayat Perawatan (Sesuai Desain Figma)
+class EditRiwayatScreen extends StatefulWidget {
   final String assetId;
   final String historyId;
   final Map<String, dynamic> data;
   final AssetService assetService;
 
-  const _EditRiwayatDialog({
+  const EditRiwayatScreen({
+    super.key,
     required this.assetId,
     required this.historyId,
     required this.data,
@@ -605,20 +596,20 @@ class _EditRiwayatDialog extends StatefulWidget {
   });
 
   @override
-  State<_EditRiwayatDialog> createState() => _EditRiwayatDialogState();
+  State<EditRiwayatScreen> createState() => _EditRiwayatScreenState();
 }
 
-class _EditRiwayatDialogState extends State<_EditRiwayatDialog> {
-  late TextEditingController _judulController;
+class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
+  late TextEditingController _namaJadwalController;
   late TextEditingController _biayaController;
   late TextEditingController _catatanController;
 
-  late String _selectedJenis;
+  late String _selectedJenisPerawatan;
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
   bool _isSaving = false;
 
-  final List<String> _jenisOptions = const ['Perawatan', 'Perbaikan'];
+  final List<String> _jenisPerawatanOptions = const ['Perawatan', 'Perbaikan'];
 
   static const List<String> _bulanIndo = [
     '',
@@ -644,22 +635,27 @@ class _EditRiwayatDialogState extends State<_EditRiwayatDialog> {
         (widget.data['detail'] ?? widget.data['notes'] ?? '').toString().trim();
     final assetName = (widget.data['assetName'] ?? '').toString();
 
-    _judulController = TextEditingController(
+    _namaJadwalController = TextEditingController(
       text: rawTitle.isNotEmpty
           ? rawTitle
           : (rawDetail.isNotEmpty ? rawDetail : 'Perawatan $assetName'),
     );
 
     final rawCost = widget.data['cost'];
-    final digits = rawCost is num
-        ? rawCost.round().toString()
-        : (rawCost ?? '0').toString().replaceAll(RegExp(r'[^0-9]'), '');
-    _biayaController = TextEditingController(text: digits.isEmpty ? '0' : digits);
+    final int initialCost = rawCost is num
+        ? rawCost.round()
+        : int.tryParse(
+              (rawCost ?? '0').toString().replaceAll(RegExp(r'[^0-9]'), ''),
+            ) ??
+            0;
+    _biayaController = TextEditingController(
+      text: _formatThousand(initialCost),
+    );
 
     _catatanController = TextEditingController(text: rawDetail);
 
     final rawType = (widget.data['maintenanceType'] ?? 'Perawatan').toString();
-    _selectedJenis =
+    _selectedJenisPerawatan =
         rawType.toLowerCase() == 'perbaikan' ? 'Perbaikan' : 'Perawatan';
 
     final ts = (widget.data['completedAt'] as Timestamp?) ??
@@ -671,10 +667,21 @@ class _EditRiwayatDialogState extends State<_EditRiwayatDialog> {
 
   @override
   void dispose() {
-    _judulController.dispose();
+    _namaJadwalController.dispose();
     _biayaController.dispose();
     _catatanController.dispose();
     super.dispose();
+  }
+
+  String _formatThousand(int number) {
+    final str = number.toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < str.length; i++) {
+      final posFromEnd = str.length - i;
+      if (i > 0 && posFromEnd % 3 == 0) buffer.write('.');
+      buffer.write(str[i]);
+    }
+    return buffer.toString();
   }
 
   String _formatTanggal(DateTime dt) {
@@ -693,6 +700,14 @@ class _EditRiwayatDialogState extends State<_EditRiwayatDialog> {
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(primary: Color(0xFF004AAD)),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) setState(() => _selectedDate = picked);
   }
@@ -701,16 +716,24 @@ class _EditRiwayatDialogState extends State<_EditRiwayatDialog> {
     final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(primary: Color(0xFF004AAD)),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) setState(() => _selectedTime = picked);
   }
 
-  Future<void> _simpan() async {
-    final judul = _judulController.text.trim();
-    if (judul.isEmpty) {
+  Future<void> _simpanPerubahan() async {
+    final namaJadwal = _namaJadwalController.text.trim();
+    if (namaJadwal.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Judul riwayat wajib diisi.'),
+          content: Text('Nama jadwal wajib diisi.'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -734,8 +757,8 @@ class _EditRiwayatDialogState extends State<_EditRiwayatDialog> {
       await widget.assetService.updateMaintenanceRecord(
         assetId: widget.assetId,
         historyId: widget.historyId,
-        title: judul,
-        maintenanceType: _selectedJenis,
+        title: namaJadwal,
+        maintenanceType: _selectedJenisPerawatan,
         maintenanceDate: _formatTanggal(_selectedDate),
         completedAtDate: combinedDateTime,
         cost: costInt,
@@ -767,241 +790,242 @@ class _EditRiwayatDialogState extends State<_EditRiwayatDialog> {
     const primaryBlue = Color(0xFF004AAD);
     final assetName = (widget.data['assetName'] ?? '-').toString();
 
-    return Dialog(
+    return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 22),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back, color: Colors.black),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF3F4F6),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Edit Riwayat Perawatan',
+          style: GoogleFonts.montserrat(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Nama Jadwal
+              _buildLabel('Nama Jadwal'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _namaJadwalController,
+                style: TextStyle(fontSize: 13.5, color: Colors.grey.shade700),
+                decoration: _inputDecoration('Masukkan nama jadwal...'),
+              ),
+              const SizedBox(height: 16),
+
+              // Nama Barang
+              _buildLabel('Nama Barang'),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade400),
                 ),
-                Expanded(
-                  child: Text(
-                    'Edit Riwayat',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.montserrat(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                child: Text(
+                  assetName,
+                  style: TextStyle(fontSize: 13.5, color: Colors.grey.shade700),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Jenis Perawatan
+              _buildLabel('Jenis Perawatan'),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade400),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedJenisPerawatan,
+                    isExpanded: true,
+                    icon: const SizedBox.shrink(),
+                    style:
+                        TextStyle(fontSize: 13.5, color: Colors.grey.shade700),
+                    items: _jenisPerawatanOptions.map((jenis) {
+                      return DropdownMenuItem<String>(
+                        value: jenis,
+                        child: Text(jenis),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _selectedJenisPerawatan = val);
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Tanggal Perawatan & Jam Perawatan
+              Row(
+                children: [
+                  Expanded(
+                    flex: 6,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Tanggal Perawatan'),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: _pilihTanggal,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            height: 48,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF3F4F6),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade400),
+                            ),
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              _formatTanggal(_selectedDate),
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(width: 24),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            _label('Nama Barang'),
-            const SizedBox(height: 6),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade400),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Jam Perawatan'),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: _pilihJam,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            height: 48,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF3F4F6),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade400),
+                            ),
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              _formatJam(_selectedTime),
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              child: Text(
-                assetName,
+              const SizedBox(height: 16),
+
+              // Biaya Perawatan
+              _buildLabel('Biaya Perawatan'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _biayaController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  _RibuanInputFormatter(),
+                ],
                 style: TextStyle(fontSize: 13.5, color: Colors.grey.shade700),
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            _label('Judul Perawatan / Perbaikan'),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _judulController,
-              style: const TextStyle(fontSize: 13.5),
-              decoration: _inputDecoration('Masukkan judul...'),
-            ),
-            const SizedBox(height: 14),
-
-            _label('Kategori'),
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade400),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedJenis,
-                  isExpanded: true,
-                  items: _jenisOptions.map((item) {
-                    return DropdownMenuItem<String>(
-                      value: item,
-                      child: Text(item, style: const TextStyle(fontSize: 13.5)),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) setState(() => _selectedJenis = val);
-                  },
+                decoration: _inputDecoration('0').copyWith(
+                  prefixText: 'Rp ',
+                  prefixStyle: TextStyle(
+                    fontSize: 13.5,
+                    color: Colors.grey.shade700,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 14),
+              const SizedBox(height: 16),
 
-            Row(
-              children: [
-                Expanded(
-                  flex: 6,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _label('Tanggal'),
-                      const SizedBox(height: 6),
-                      InkWell(
-                        onTap: _pilihTanggal,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          height: 46,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: BoxDecoration(
+              // Catatan Tambahan (Opsional)
+              _buildLabel('Catatan Tambahan (Opsional)'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _catatanController,
+                maxLines: 3,
+                style: TextStyle(fontSize: 13.5, color: Colors.grey.shade700),
+                decoration: _inputDecoration('Masukkan catatan tambahan...'),
+              ),
+              const SizedBox(height: 44),
+
+              // Tombol Simpan Perubahan
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _simpanPerubahan,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryBlue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade400),
+                            strokeWidth: 2.5,
                           ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _formatTanggal(_selectedDate),
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12.5),
-                                ),
-                              ),
-                              Icon(
-                                Icons.calendar_today_outlined,
-                                size: 17,
-                                color: Colors.grey.shade600,
-                              ),
-                            ],
+                        )
+                      : Text(
+                          'Simpan Perubahan',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 4,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _label('Jam'),
-                      const SizedBox(height: 6),
-                      InkWell(
-                        onTap: _pilihJam,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          height: 46,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade400),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _formatJam(_selectedTime),
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12.5),
-                                ),
-                              ),
-                              Icon(
-                                Icons.access_time_rounded,
-                                size: 17,
-                                color: Colors.grey.shade600,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-
-            _label('Biaya'),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _biayaController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: const TextStyle(fontSize: 13.5),
-              decoration: _inputDecoration('0').copyWith(prefixText: 'Rp '),
-            ),
-            const SizedBox(height: 14),
-
-            _label('Catatan Rincian'),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _catatanController,
-              maxLines: 3,
-              style: const TextStyle(fontSize: 13.5),
-              decoration: _inputDecoration('Masukkan rincian perawatan...'),
-            ),
-            const SizedBox(height: 22),
-
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : _simpan,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryBlue,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  elevation: 0,
-                ),
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Text(
-                        'Perbarui',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _label(String text) {
+  Widget _buildLabel(String text) {
     return Text(
       text,
       style: GoogleFonts.montserrat(
-        fontSize: 13,
+        fontSize: 13.5,
         fontWeight: FontWeight.bold,
         color: Colors.black87,
       ),
@@ -1011,10 +1035,10 @@ class _EditRiwayatDialogState extends State<_EditRiwayatDialog> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13.5),
       filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      fillColor: const Color(0xFFF3F4F6),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: Colors.grey.shade400),
@@ -1023,6 +1047,35 @@ class _EditRiwayatDialogState extends State<_EditRiwayatDialog> {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Color(0xFF004AAD), width: 1.4),
       ),
+    );
+  }
+}
+
+class _RibuanInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+    final number = int.parse(digits);
+    final str = number.toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < str.length; i++) {
+      final posFromEnd = str.length - i;
+      if (i > 0 && posFromEnd % 3 == 0) buffer.write('.');
+      buffer.write(str[i]);
+    }
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }
