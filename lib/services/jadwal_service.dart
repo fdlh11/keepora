@@ -103,8 +103,9 @@ class JadwalService {
         : (scheduleData['notes'] ?? '').toString();
 
     if (assetId.isNotEmpty) {
+      final assetRef = _assetsRef.doc(assetId);
       final maintenanceDoc =
-          _assetsRef.doc(assetId).collection('maintenance_history').doc();
+          assetRef.collection('maintenance_history').doc();
 
       batch.set(maintenanceDoc, {
         'userId': _uid,
@@ -118,6 +119,11 @@ class JadwalService {
         'notes': finalNotes,
         'completedAt': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // Memicu stream induk agar tab Riwayat langsung auto-refresh real-time
+      batch.update(assetRef, {
+        'updatedAt': FieldValue.serverTimestamp(),
       });
     }
 
