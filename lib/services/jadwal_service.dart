@@ -21,15 +21,15 @@ class JadwalService {
 
   // Stream daftar jadwal aktif
   Stream<QuerySnapshot> streamJadwalAktif() {
-    return _firestore
-        .collection('schedules')
-        .where('userId', isEqualTo: _uid)
-        .where('status', isEqualTo: 'scheduled')
+    if (_auth.currentUser == null) return const Stream.empty();
+    return _schedulesRef
+        .where('status', isEqualTo: 'pending')
         .snapshots();
   }
 
   // Stream daftar barang milik pengguna untuk dropdown
   Stream<QuerySnapshot> streamDaftarBarang() {
+    if (_auth.currentUser == null) return const Stream.empty();
     return _assetsRef.orderBy('name', descending: false).snapshots();
   }
 
@@ -104,17 +104,20 @@ class JadwalService {
 
     if (assetId.isNotEmpty) {
       final maintenanceDoc =
-          _assetsRef.doc(assetId).collection('maintenance').doc();
+          _assetsRef.doc(assetId).collection('maintenance_history').doc();
 
       batch.set(maintenanceDoc, {
+        'userId': _uid,
         'scheduleId': scheduleId,
         'title': scheduleData['title'] ?? '',
         'assetId': assetId,
         'assetName': scheduleData['assetName'] ?? '',
         'maintenanceType': scheduleData['maintenanceType'] ?? 'Perawatan',
         'cost': cost,
+        'detail': finalNotes,
         'notes': finalNotes,
         'completedAt': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
       });
     }
 
