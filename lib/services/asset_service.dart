@@ -1,11 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart';
-import 'dart:ui' as ui;
 
 class AssetService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -30,7 +29,7 @@ class AssetService {
   Future<String> uploadAssetImage(File imageFile) async {
     final Uint8List rawBytes = await imageFile.readAsBytes();
 
-    // Kecilkan resolusi maksimal lebar/tinggi 720px agar ukuran dokumen Firestore tetap ringan (< 300 KB)
+    // Kecilkan resolusi maksimal lebar 720px agar ukuran dokumen Firestore tetap ringan (< 300 KB)
     final ui.Codec codec = await ui.instantiateImageCodec(
       rawBytes,
       targetWidth: 720,
@@ -107,10 +106,10 @@ class AssetService {
   Stream<QuerySnapshot> getAllMaintenanceHistoryStream() {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return const Stream.empty();
+    // Tanpa orderBy agar tidak butuh composite index; pengurutan dilakukan lokal di UI
     return _firestore
         .collectionGroup('maintenance_history')
         .where('userId', isEqualTo: uid)
-        .orderBy('createdAt', descending: true)
         .snapshots();
   }
 
@@ -129,19 +128,27 @@ class AssetService {
     required String maintenanceDate,
     required String cost,
     required String detail,
+    String title = 'Perawatan Barang',
+    String maintenanceType = 'Perawatan',
+    DateTime? completedAtDate,
   }) async {
     final uid = _uid;
     final assetRef = _assetsRef.doc(assetId);
     final batch = _firestore.batch();
+    final effectiveDate = completedAtDate ?? DateTime.now();
 
     final historyRef = assetRef.collection('maintenance_history').doc();
     batch.set(historyRef, {
       'userId': uid,
       'assetId': assetId,
       'assetName': assetName,
+      'title': title,
+      'maintenanceType': maintenanceType,
       'maintenanceDate': maintenanceDate,
       'cost': cost,
       'detail': detail,
+      'notes': detail,
+      'completedAt': Timestamp.fromDate(effectiveDate),
       'createdAt': FieldValue.serverTimestamp(),
     });
 
@@ -158,8 +165,11 @@ class AssetService {
   Future<void> updateMaintenanceRecord({
     required String assetId,
     required String historyId,
+    required String title,
+    required String maintenanceType,
     required String maintenanceDate,
-    required String cost,
+    required DateTime completedAtDate,
+    required dynamic cost,
     required String detail,
   }) async {
     await _assetsRef
@@ -167,9 +177,13 @@ class AssetService {
         .collection('maintenance_history')
         .doc(historyId)
         .update({
+      'title': title.trim(),
+      'maintenanceType': maintenanceType,
       'maintenanceDate': maintenanceDate,
+      'completedAt': Timestamp.fromDate(completedAtDate),
       'cost': cost,
-      'detail': detail,
+      'detail': detail.trim(),
+      'notes': detail.trim(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
@@ -242,9 +256,13 @@ class AssetService {
         'userId': uid,
         'assetId': assetId,
         'assetName': assetName,
+        'title': maintenanceTitle,
+        'maintenanceType': 'Perawatan',
         'maintenanceDate': dateFormatted,
         'cost': cost,
         'detail': maintenanceTitle,
+        'notes': maintenanceTitle,
+        'completedAt': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
       });
     }

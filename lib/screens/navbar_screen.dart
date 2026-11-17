@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'home_screen.dart';
 import 'jadwal_screen.dart';
+import 'riwayat_screen.dart';
 
 class NavbarScreen extends StatefulWidget {
   final int initialIndex;
@@ -27,6 +28,7 @@ class _NavbarScreenState extends State<NavbarScreen> {
     final List<Widget> pages = [
       const HomeScreen(),
       const JadwalScreen(),
+      const RiwayatScreen(),
       const _PlaceholderTabScreen(
         title: 'Riwayat Perawatan',
         icon: Icons.access_time_rounded,
