@@ -191,11 +191,13 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
             );
           }
 
-          final allDocs = [...(snapshot.data?.docs ?? [])]..sort((a, b) {
-              final dataA = a.data() as Map<String, dynamic>? ?? {};
-              final dataB = b.data() as Map<String, dynamic>? ?? {};
-              return _extractDate(dataB).compareTo(_extractDate(dataA));
-            });
+          final List<QueryDocumentSnapshot> allDocs =
+              List<QueryDocumentSnapshot>.from(snapshot.data?.docs ?? [])
+                ..sort((a, b) {
+                  final dataA = a.data() as Map<String, dynamic>? ?? {};
+                  final dataB = b.data() as Map<String, dynamic>? ?? {};
+                  return _extractDate(dataB).compareTo(_extractDate(dataA));
+                });
 
           final monthOptions = _generateMonthOptions(allDocs);
           if (!monthOptions.any(
