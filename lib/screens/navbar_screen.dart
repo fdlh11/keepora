@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'home_screen.dart';
+import 'jadwal_screen.dart';
 
 class NavbarScreen extends StatefulWidget {
   final int initialIndex;
@@ -25,11 +26,7 @@ class _NavbarScreenState extends State<NavbarScreen> {
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       const HomeScreen(),
-      const _PlaceholderTabScreen(
-        title: 'Jadwal Perawatan',
-        icon: Icons.calendar_today_outlined,
-        subtitle: 'Halaman Jadwal Perawatan siap dibangun di tahap berikutnya.',
-      ),
+      const JadwalScreen(),
       const _PlaceholderTabScreen(
         title: 'Riwayat Perawatan',
         icon: Icons.access_time_rounded,
