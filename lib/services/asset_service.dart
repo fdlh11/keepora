@@ -1,13 +1,15 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart';
+import 'dart:ui' as ui;
 
 class AssetService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   String get _uid {
     final uid = _auth.currentUser?.uid;
@@ -23,32 +25,40 @@ class AssetService {
 
   CollectionReference get _schedulesRef => _userDoc.collection('schedules');
 
-  // Firebase Storage (Foto Barang)
+  // Kompresi & Konversi Foto ke Base64 Data URI (Gratis Tanpa Firebase Storage)
 
   Future<String> uploadAssetImage(File imageFile) async {
-    final uid = _uid;
-    final fileName = 'asset_${DateTime.now().millisecondsSinceEpoch}.jpg';
-    final ref = _storage
-        .ref()
-        .child('users')
-        .child(uid)
-        .child('assets')
-        .child(fileName);
+    final Uint8List rawBytes = await imageFile.readAsBytes();
 
-    final uploadTask = await ref.putFile(
-      imageFile,
-      SettableMetadata(contentType: 'image/jpeg'),
+    // Kecilkan resolusi maksimal lebar/tinggi 720px agar ukuran dokumen Firestore tetap ringan (< 300 KB)
+    final ui.Codec codec = await ui.instantiateImageCodec(
+      rawBytes,
+      targetWidth: 720,
     );
-    return await uploadTask.ref.getDownloadURL();
+    final ui.FrameInfo frameInfo = await codec.getNextFrame();
+    final ByteData? byteData = await frameInfo.image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
+
+    final Uint8List finalBytes =
+        byteData != null ? byteData.buffer.asUint8List() : rawBytes;
+
+    // Jika hasil PNG masih terlalu besar (> 750 KB), gunakan bytes asli (JPEG hasil kompresi image_picker)
+    final Uint8List chosenBytes =
+        finalBytes.lengthInBytes > 750000 ? rawBytes : finalBytes;
+
+    if (chosenBytes.lengthInBytes > 850000) {
+      throw Exception(
+        'Ukuran foto terlalu besar. Gunakan foto dengan resolusi lebih kecil.',
+      );
+    }
+
+    final String base64Str = base64Encode(chosenBytes);
+    return 'data:image/jpeg;base64,$base64Str';
   }
 
   Future<void> deleteAssetImageByUrl(String photoUrl) async {
-    if (photoUrl.isEmpty) return;
-    try {
-      await _storage.refFromURL(photoUrl).delete();
-    } catch (_) {
-      // Abaikan jika file sudah terhapus atau URL tidak valid
-    }
+    // Tidak perlu menghapus dari Storage karena foto tersimpan di dokumen Firestore
   }
 
   // CRUD Data Barang (Assets)
@@ -76,11 +86,6 @@ class AssetService {
   Future<void> deleteAsset(String docId) async {
     final assetRef = _assetsRef.doc(docId);
 
-    // Ambil photoUrl terlebih dahulu agar foto di Storage ikut terhapus
-    final assetSnap = await assetRef.get();
-    final assetData = assetSnap.data() as Map<String, dynamic>? ?? {};
-    final photoUrl = (assetData['photoUrl'] ?? '').toString();
-
     final historySnapshot =
         await assetRef.collection('maintenance_history').get();
     final schedulesSnapshot =
@@ -95,10 +100,6 @@ class AssetService {
     }
     batch.delete(assetRef);
     await batch.commit();
-
-    if (photoUrl.isNotEmpty) {
-      await deleteAssetImageByUrl(photoUrl);
-    }
   }
 
   // CRUD Riwayat Perawatan (Maintenance History)

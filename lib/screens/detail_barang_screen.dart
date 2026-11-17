@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -448,6 +450,30 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     );
   }
 
+  Widget _buildAssetPhoto(String photoUrl) {
+    if (photoUrl.isEmpty) return _photoPlaceholder();
+
+    if (photoUrl.startsWith('data:image')) {
+      try {
+        final base64Part = photoUrl.split(',').last;
+        final bytes = base64Decode(base64Part);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => _photoPlaceholder(),
+        );
+      } catch (_) {
+        return _photoPlaceholder();
+      }
+    }
+
+    return Image.network(
+      photoUrl,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => _photoPlaceholder(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF004AAD);
@@ -540,13 +566,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                     width: double.infinity,
                     height: 205,
                     color: const Color(0xFFE5E7EB),
-                    child: photoUrl.isNotEmpty
-                        ? Image.network(
-                            photoUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _photoPlaceholder(),
-                          )
-                        : _photoPlaceholder(),
+                    child: _buildAssetPhoto(photoUrl),
                   ),
 
                   Padding(
