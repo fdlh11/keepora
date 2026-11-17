@@ -1,14 +1,12 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/asset_service.dart';
-import 'akun_screen.dart';
+import '../services/auth_service.dart';
 import 'detail_barang_screen.dart';
+import 'login_screen.dart';
 import 'tambah_barang_screen.dart';
-import 'jadwal_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,17 +16,20 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedCategoryIndex = 0;
-  int _currentNavIndex = 0;
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
   final AssetService _assetService = AssetService();
+  final AuthService _authService = AuthService();
+  final TextEditingController _searchController = TextEditingController();
+
+  String _searchQuery = '';
+  String _selectedCategory = 'Semua';
 
   final List<String> _categories = [
     'Semua',
     'Elektronik',
     'Kendaraan',
-    'Peralatan Hobi',
+    'Peralatan Rumah Tangga',
+    'Perkakas & Alat Kerja',
+    'Furnitur',
     'Lainnya',
   ];
 
@@ -38,708 +39,398 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  IconData _getDeviceIcon(String? category) {
-    switch (category) {
-      case 'Elektronik':
-        return Icons.devices_other_outlined;
-      case 'Kendaraan':
-        return Icons.two_wheeler_outlined;
-      case 'Peralatan Hobi':
-        return Icons.sports_tennis_outlined;
-      default:
-        return Icons.inventory_2_outlined;
-    }
-  }
-
-  Widget _buildAssetThumbnail(String? imagePath, String category) {
-    if (imagePath != null && imagePath.isNotEmpty) {
-      if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.network(
-            imagePath,
-            width: 75,
-            height: 75,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _buildFallbackThumbnail(category),
+  Future<void> _confirmLogout() async {
+    final bool? shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(
+          'Keluar Akun',
+          style: GoogleFonts.montserrat(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
           ),
-        );
-      }
-
-      final File localFile = File(imagePath);
-      if (localFile.existsSync()) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.file(
-            localFile,
-            width: 75,
-            height: 75,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _buildFallbackThumbnail(category),
+        ),
+        content: const Text(
+          'Apakah Anda yakin ingin keluar dari akun Keepora?',
+          style: TextStyle(fontSize: 13.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
           ),
-        );
-      }
-    }
-
-    return _buildFallbackThumbnail(category);
-  }
-
-  Widget _buildFallbackThumbnail(String category) {
-    return Container(
-      width: 75,
-      height: 75,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(
-        _getDeviceIcon(category),
-        color: Colors.grey.shade600,
-        size: 34,
-      ),
-    );
-  }
-
-  Future<void> _openDetailBarang(
-    String docId,
-    Map<String, dynamic> rawData,
-  ) async {
-    final Map<String, String> deviceMap = {
-      'id': docId,
-      'name': (rawData['name'] ?? '').toString(),
-      'category': (rawData['category'] ?? 'Lainnya').toString(),
-      'status': (rawData['status'] ?? 'Kondisi Baik').toString(),
-      'purchaseDate': (rawData['purchaseDate'] ?? '-').toString(),
-      'purchasePrice': (rawData['purchasePrice'] ?? '-').toString(),
-      'conditionDetail': (rawData['conditionDetail'] ?? '').toString(),
-      'lastMaintenance': (rawData['lastMaintenance'] ?? '-').toString(),
-      'lastMaintenanceCost': (rawData['lastMaintenanceCost'] ?? '-').toString(),
-      'maintenanceDetail': (rawData['maintenanceDetail'] ?? '').toString(),
-      'image': (rawData['image'] ?? '').toString(),
-    };
-
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DetailBarangScreen(device: deviceMap),
-      ),
-    );
-
-    if (!mounted || result == null) return;
-
-    if (result['action'] == 'delete') {
-      await _assetService.deleteAsset(docId);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${deviceMap['name']} berhasil dihapus.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } else if (result['action'] == 'update' && result['data'] != null) {
-      final updated = Map<String, String>.from(result['data']);
-      await _assetService.updateAsset(docId, {
-        'conditionDetail': updated['conditionDetail'] ?? '',
-        'maintenanceDetail': updated['maintenanceDetail'] ?? '',
-      });
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Perubahan detail barang berhasil disimpan.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  Widget _buildBerandaTab(Color primaryBlue) {
-    final String query = _searchQuery.trim().toLowerCase();
-
-    return SafeArea(
-      child: StreamBuilder<QuerySnapshot>(
-        stream: _assetService.getAssetsStream(),
-        builder: (context, snapshot) {
-          final docs = snapshot.data?.docs ?? [];
-
-          final filteredDocs = docs.where((doc) {
-            final data = doc.data() as Map<String, dynamic>?;
-            final String category = (data?['category'] ?? '').toString();
-            final String name = (data?['name'] ?? '').toString();
-
-            final bool matchesCategory =
-                _selectedCategoryIndex == 0 ||
-                category == _categories[_selectedCategoryIndex];
-            final bool matchesSearch =
-                query.isEmpty || name.toLowerCase().contains(query);
-            return matchesCategory && matchesSearch;
-          }).toList();
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Judul Keepora
-                Text(
-                  'KEEPORA',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Mengelola Barang Pribadi Anda Dalam Satu Aplikasi!',
-                  style: TextStyle(fontSize: 13, color: Colors.black54),
-                ),
-                const SizedBox(height: 18),
-
-                // Search bar
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(
-                                Icons.close,
-                                color: Colors.grey,
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() {
-                                  _searchQuery = '';
-                                });
-                              },
-                            )
-                          : null,
-                      hintText: 'Cari nama barang...',
-                      hintStyle: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-
-                // Kartu Perawatan Mendatang
-                Material(
-                  color: primaryBlue,
-                  borderRadius: BorderRadius.circular(16),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () {
-                      setState(() {
-                        _currentNavIndex = 1;
-                      });
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Perawatan Mendatang',
-                                style: GoogleFonts.montserrat(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Icon(
-                                Icons.north_east,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.event_available_outlined,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Belum ada jadwal perawatan',
-                                      style: GoogleFonts.montserrat(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    const Text(
-                                      'Tambahkan barang atau atur jadwal perawatan Anda.',
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Judul dan total barang
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'Daftar Barang ',
-                            style: GoogleFonts.montserrat(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          TextSpan(
-                            text: '${filteredDocs.length} barang',
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const TambahBarangScreen(),
-                          ),
-                        );
-                      },
-                      child: Text(
-                        'Tambah Barang',
-                        style: TextStyle(
-                          color: primaryBlue,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Filter kategori
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: List.generate(_categories.length, (index) {
-                      final isSelected = _selectedCategoryIndex == index;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: ChoiceChip(
-                          label: Text(_categories[index]),
-                          selected: isSelected,
-                          selectedColor: primaryBlue,
-                          backgroundColor: Colors.grey.shade100,
-                          labelStyle: TextStyle(
-                            color: isSelected ? Colors.white : Colors.black87,
-                            fontSize: 12,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          elevation: 0,
-                          showCheckmark: false,
-                          onSelected: (selected) {
-                            setState(() {
-                              _selectedCategoryIndex = index;
-                            });
-                          },
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // List Barang
-                if (snapshot.connectionState == ConnectionState.waiting)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (docs.isEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 36,
-                      horizontal: 20,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          size: 42,
-                          color: Colors.grey.shade500,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Belum ada barang',
-                          style: GoogleFonts.montserrat(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Data barang Anda masih kosong. Ketuk "Tambah Barang" untuk mulai mencatat.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                else if (filteredDocs.isEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 36,
-                      horizontal: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.search_off_rounded,
-                          size: 40,
-                          color: Colors.grey.shade500,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Barang tidak ditemukan',
-                          style: GoogleFonts.montserrat(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Tidak ada barang yang cocok dengan pencarian Anda.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  ListView.separated(
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: filteredDocs.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final doc = filteredDocs[index];
-                      final data = doc.data() as Map<String, dynamic>?;
-                      final String status = (data?['status'] ?? 'Kondisi Baik')
-                          .toString();
-                      final String category = (data?['category'] ?? 'Lainnya')
-                          .toString();
-                      final String name = (data?['name'] ?? '-').toString();
-                      final String lastMaintenance =
-                          (data?['lastMaintenance'] ?? '-').toString();
-                      final String imagePath = (data?['image'] ?? '')
-                          .toString();
-
-                      final bool isDamaged = status == 'Kondisi Cacat';
-                      final Color badgeBgColor = isDamaged
-                          ? Colors.red.shade50
-                          : Colors.green.shade50;
-                      final Color badgeTextColor = isDamaged
-                          ? Colors.red
-                          : Colors.green;
-
-                      return Material(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(16),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () => _openDetailBarang(doc.id, data ?? {}),
-                          child: Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: Row(
-                              children: [
-                                _buildAssetThumbnail(imagePath, category),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 3,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: primaryBlue.withValues(
-                                                alpha: 0.12,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              category,
-                                              style: TextStyle(
-                                                color: primaryBlue,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                          const Spacer(),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 6,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: badgeBgColor,
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Container(
-                                                  width: 5,
-                                                  height: 5,
-                                                  decoration: BoxDecoration(
-                                                    color: badgeTextColor,
-                                                    shape: BoxShape.circle,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  status,
-                                                  style: TextStyle(
-                                                    color: badgeTextColor,
-                                                    fontSize: 9,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        name,
-                                        style: GoogleFonts.montserrat(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Perawatan Terakhir : $lastMaintenance',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.black54,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.chevron_right,
-                                  color: Colors.grey,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-              ],
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF004AAD),
+              foregroundColor: Colors.white,
             ),
-          );
-        },
+            child: const Text('Keluar'),
+          ),
+        ],
       ),
     );
-  }
 
-  Widget _buildNavItem({
-    required int index,
-    required IconData icon,
-    required String label,
-    required Color primaryBlue,
-  }) {
-    final bool isSelected = _currentNavIndex == index;
-    final Color itemColor = isSelected ? primaryBlue : Colors.grey.shade600;
-
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          setState(() {
-            _currentNavIndex = index;
-          });
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          margin: const EdgeInsets.all(4),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? primaryBlue.withValues(alpha: 0.1)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(32),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: itemColor, size: 24),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: itemColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    if (shouldLogout == true) {
+      await _authService.signOut();
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    const primaryBlue = Color(0xFF0056C6);
+    const primaryBlue = Color(0xFF004AAD);
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: IndexedStack(
-        index: _currentNavIndex,
-        children: [
-          _buildBerandaTab(primaryBlue),
-          const JadwalScreen(),
-          const Center(child: Text('Halaman Riwayat')),
-          const AkunScreen(),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(40),
-            border: Border.all(color: const Color(0xFFD6DCFA), width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(38),
-            child: Row(
-              children: [
-                _buildNavItem(
-                  index: 0,
-                  icon: Icons.home_outlined,
-                  label: 'Beranda',
-                  primaryBlue: primaryBlue,
-                ),
-                _buildNavItem(
-                  index: 1,
-                  icon: Icons.calendar_today_outlined,
-                  label: 'Jadwal',
-                  primaryBlue: primaryBlue,
-                ),
-                _buildNavItem(
-                  index: 2,
-                  icon: Icons.access_time_outlined,
-                  label: 'Riwayat',
-                  primaryBlue: primaryBlue,
-                ),
-                _buildNavItem(
-                  index: 3,
-                  icon: Icons.person_outline,
-                  label: 'Akun',
-                  primaryBlue: primaryBlue,
-                ),
-              ],
-            ),
+      backgroundColor: const Color(0xFFF3F4F6),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF3F4F6),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text(
+          'Keepora',
+          style: GoogleFonts.montserrat(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
           ),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Keluar Akun',
+            icon: const Icon(Icons.logout_rounded, color: Colors.black87),
+            onPressed: _confirmLogout,
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: primaryBlue,
+        foregroundColor: Colors.white,
+        elevation: 2,
+        shape: const StadiumBorder(),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const TambahBarangScreen()),
+          );
+        },
+        icon: const Icon(Icons.add, size: 22),
+        label: Text(
+          'Barang',
+          style: GoogleFonts.montserrat(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      body: Column(
+        children: [
+          // Kolom Pencarian
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) =>
+                  setState(() => _searchQuery = val.toLowerCase().trim()),
+              style: const TextStyle(fontSize: 13.5),
+              decoration: InputDecoration(
+                hintText: 'Cari nama barang...',
+                hintStyle: TextStyle(
+                  fontSize: 13.5,
+                  color: Colors.grey.shade500,
+                ),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  color: Colors.grey.shade600,
+                ),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: primaryBlue,
+                    width: 1.4,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Filter Kategori Horizontal
+          SizedBox(
+            height: 38,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _categories.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final category = _categories[index];
+                final isSelected = _selectedCategory == category;
+
+                return ChoiceChip(
+                  label: Text(
+                    category,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                      color: isSelected ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  selected: isSelected,
+                  selectedColor: primaryBlue,
+                  backgroundColor: Colors.white,
+                  side: BorderSide(
+                    color:
+                        isSelected ? primaryBlue : const Color(0xFFE2E8F0),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  showCheckmark: false,
+                  onSelected: (_) {
+                    setState(() => _selectedCategory = category);
+                  },
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Daftar Barang Real-Time dari Firestore
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _assetService.getAssetsStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: primaryBlue),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Text(
+                        'Terjadi kesalahan saat memuat data: ${snapshot.error}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    ),
+                  );
+                }
+
+                final allDocs = snapshot.data?.docs ?? [];
+                final filteredDocs = allDocs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>? ?? {};
+                  final name = (data['name'] ?? '').toString().toLowerCase();
+                  final category = (data['category'] ?? '').toString();
+
+                  final matchesSearch =
+                      _searchQuery.isEmpty || name.contains(_searchQuery);
+                  final matchesCategory = _selectedCategory == 'Semua' ||
+                      category == _selectedCategory;
+
+                  return matchesSearch && matchesCategory;
+                }).toList();
+
+                if (filteredDocs.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.inventory_2_outlined,
+                            size: 52,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            allDocs.isEmpty
+                                ? 'Belum ada barang tersimpan'
+                                : 'Barang tidak ditemukan',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            allDocs.isEmpty
+                                ? 'Tekan tombol "+ Barang" di pojok kanan bawah untuk mulai mencatat aset Anda.'
+                                : 'Coba ubah kata kunci pencarian atau filter kategori.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 92),
+                  itemCount: filteredDocs.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final doc = filteredDocs[index];
+                    final data = doc.data() as Map<String, dynamic>? ?? {};
+
+                    final name = (data['name'] ?? 'Tanpa Nama').toString();
+                    final category = (data['category'] ?? 'Umum').toString();
+                    final price = (data['purchasePrice'] ?? 'Rp 0').toString();
+                    final condition = (data['condition'] ?? '-').toString();
+                    final lastMaint =
+                        (data['lastMaintenance'] ?? '-').toString();
+
+                    return InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                DetailBarangScreen(assetId: doc.id),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 46,
+                              height: 46,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDBEAFE),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.devices_other_rounded,
+                                color: primaryBlue,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          name,
+                                          style: GoogleFonts.montserrat(
+                                            fontSize: 14.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black87,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFEFF6FF),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                          border: Border.all(
+                                            color: const Color(0xFFBFDBFE),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          category,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: primaryBlue,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    '$price • $condition',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Perawatan terakhir: $lastMaint',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: Colors.grey.shade500,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
