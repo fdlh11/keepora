@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/otp_service.dart';
+import '../utils/top_notif.dart';
 
 class PasswordBaruScreen extends StatefulWidget {
   const PasswordBaruScreen({super.key});
@@ -22,21 +23,19 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
   Future<void> _handleSavePassword() async {
     final newPassword = _passwordController.text.trim();
     if (newPassword.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password baru minimal harus terdiri dari 6 karakter.'),
-          backgroundColor: Colors.redAccent,
-        ),
+      showTopNotif(
+        context,
+        'Password baru minimal harus terdiri dari 6 karakter.',
+        isError: true,
       );
       return;
     }
 
     if (_email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sesi email tidak ditemukan. Silakan ulangi dari awal.'),
-          backgroundColor: Colors.redAccent,
-        ),
+      showTopNotif(
+        context,
+        'Sesi email tidak ditemukan. Silakan ulangi dari awal.',
+        isError: true,
       );
       return;
     }
@@ -47,21 +46,18 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
       await _otpService.updatePasswordWithOtp(_email, newPassword);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password baru berhasil disimpan! Silakan masuk.'),
-            backgroundColor: Colors.green,
-          ),
+        showTopNotif(
+          context,
+          'Password baru berhasil disimpan! Silakan masuk.',
         );
         Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.redAccent,
-          ),
+        showTopNotif(
+          context,
+          e.toString().replaceAll('Exception: ', ''),
+          isError: true,
         );
       }
     } finally {
@@ -138,6 +134,7 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
               TextField(
                 controller: _passwordController,
                 obscureText: _obscureText,
+                scrollPadding: const EdgeInsets.only(bottom: 140),
                 style: const TextStyle(color: Colors.black87),
                 decoration: InputDecoration(
                   hintText: 'Masukkan password baru...',

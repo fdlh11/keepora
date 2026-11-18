@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../main.dart';
 import '../services/asset_service.dart';
 import '../services/auth_service.dart';
+import '../utils/top_notif.dart';
 import 'login_screen.dart';
 
 class AkunScreen extends StatefulWidget {
@@ -87,30 +88,34 @@ class _AkunScreenState extends State<AkunScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Nama Lengkap',
-                style: GoogleFonts.montserrat(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  hintText: 'Masukkan nama lengkap...',
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Nama Lengkap',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    hintText: 'Masukkan nama lengkap...',
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -140,19 +145,17 @@ class _AkunScreenState extends State<AkunScreen> {
                         if (dialogContext.mounted) Navigator.pop(dialogContext);
                         if (mounted) {
                           setState(() {});
-                          ScaffoldMessenger.of(this.context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Profil berhasil diperbarui.'),
-                              backgroundColor: Color(0xFF004AAD),
-                            ),
+                          showTopNotif(
+                            this.context,
+                            'Profil berhasil diperbarui.',
                           );
                         }
                       } catch (e) {
                         if (mounted) {
-                          ScaffoldMessenger.of(this.context).showSnackBar(
-                            SnackBar(
-                              content: Text('Gagal memperbarui profil: $e'),
-                            ),
+                          showTopNotif(
+                            this.context,
+                            'Gagal memperbarui profil: $e',
+                            isError: true,
                           );
                         }
                       } finally {
@@ -201,31 +204,33 @@ class _AkunScreenState extends State<AkunScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: newPassController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Password Baru (min. 6 karakter)',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: newPassController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Password Baru (min. 6 karakter)',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: confirmPassController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Konfirmasi Password Baru',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmPassController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Konfirmasi Password Baru',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -239,20 +244,18 @@ class _AkunScreenState extends State<AkunScreen> {
                       final pass = newPassController.text.trim();
                       final confirm = confirmPassController.text.trim();
                       if (pass.length < 6) {
-                        ScaffoldMessenger.of(this.context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Password minimal 6 karakter.'),
-                            backgroundColor: Colors.redAccent,
-                          ),
+                        showTopNotif(
+                          this.context,
+                          'Password minimal 6 karakter.',
+                          isError: true,
                         );
                         return;
                       }
                       if (pass != confirm) {
-                        ScaffoldMessenger.of(this.context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Konfirmasi password tidak cocok.'),
-                            backgroundColor: Colors.redAccent,
-                          ),
+                        showTopNotif(
+                          this.context,
+                          'Konfirmasi password tidak cocok.',
+                          isError: true,
                         );
                         return;
                       }
@@ -262,24 +265,19 @@ class _AkunScreenState extends State<AkunScreen> {
                         await _auth.currentUser?.updatePassword(pass);
                         if (dialogContext.mounted) Navigator.pop(dialogContext);
                         if (mounted) {
-                          ScaffoldMessenger.of(this.context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Password berhasil diperbarui.'),
-                              backgroundColor: Color(0xFF004AAD),
-                            ),
+                          showTopNotif(
+                            this.context,
+                            'Password berhasil diperbarui.',
                           );
                         }
                       } on FirebaseAuthException catch (e) {
                         if (mounted) {
-                          ScaffoldMessenger.of(this.context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                e.code == 'requires-recent-login'
-                                    ? 'Silakan login ulang terlebih dahulu untuk mengubah password.'
-                                    : 'Gagal mengubah password: ${e.message}',
-                              ),
-                              backgroundColor: Colors.redAccent,
-                            ),
+                          showTopNotif(
+                            this.context,
+                            e.code == 'requires-recent-login'
+                                ? 'Silakan login ulang terlebih dahulu untuk mengubah password.'
+                                : 'Gagal mengubah password: ${e.message}',
+                            isError: true,
                           );
                         }
                       } finally {
@@ -314,10 +312,10 @@ class _AkunScreenState extends State<AkunScreen> {
       final docs = await _assetService.getAllMaintenanceHistoryStream().first;
       if (docs.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Belum ada data riwayat untuk diekspor.'),
-            ),
+          showTopNotif(
+            context,
+            'Belum ada data riwayat untuk diekspor.',
+            isError: true,
           );
         }
         return;
@@ -339,19 +337,17 @@ class _AkunScreenState extends State<AkunScreen> {
 
       await Clipboard.setData(ClipboardData(text: buffer.toString()));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Laporan ${docs.length} riwayat perawatan berhasil disalin ke clipboard.',
-            ),
-            backgroundColor: const Color(0xFF004AAD),
-          ),
+        showTopNotif(
+          context,
+          'Laporan ${docs.length} riwayat perawatan berhasil disalin ke clipboard.',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengekspor data: $e')),
+        showTopNotif(
+          context,
+          'Gagal mengekspor data: $e',
+          isError: true,
         );
       }
     }
@@ -412,7 +408,6 @@ class _AkunScreenState extends State<AkunScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Kartu Biru Profil Pengguna
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
@@ -496,7 +491,6 @@ class _AkunScreenState extends State<AkunScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Grup 1: Laporan & Tampilan
                     Text(
                       'Laporan & Tampilan',
                       style: GoogleFonts.montserrat(
@@ -547,7 +541,6 @@ class _AkunScreenState extends State<AkunScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Grup 2: Akun & Keamanan
                     Text(
                       'Akun & Keamanan',
                       style: GoogleFonts.montserrat(
@@ -572,7 +565,6 @@ class _AkunScreenState extends State<AkunScreen> {
                     ),
                     const SizedBox(height: 36),
 
-                    // Tombol Logout (rata kiri selaras kartu menu)
                     InkWell(
                       onTap: _confirmLogout,
                       borderRadius: BorderRadius.circular(14),

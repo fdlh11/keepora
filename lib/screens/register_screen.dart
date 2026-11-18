@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/auth_service.dart';
+import '../utils/top_notif.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -45,13 +46,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final confirmPassword = _confirmPasswordController.text.trim();
 
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Konfirmasi password tidak cocok dengan password Anda.',
-          ),
-          backgroundColor: Colors.redAccent,
-        ),
+      showTopNotif(
+        context,
+        'Konfirmasi password tidak cocok dengan password Anda.',
+        isError: true,
       );
       return;
     }
@@ -86,12 +84,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        showTopNotif(context, e.toString(), isError: true);
       }
     } finally {
       if (mounted) {
@@ -116,13 +109,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       backgroundColor: primaryBlue,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 32.0),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Tombol Kembali ke Halaman Login
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.14),
@@ -151,7 +144,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 const SizedBox(height: 28),
 
-                // Judul
                 Text(
                   'Buat Akun',
                   style: GoogleFonts.montserrat(
@@ -180,6 +172,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
+                  scrollPadding: const EdgeInsets.only(bottom: 140),
                   style: const TextStyle(color: Colors.white),
                   validator: _validateEmail,
                   decoration: InputDecoration(
@@ -237,6 +230,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
+                  scrollPadding: const EdgeInsets.only(bottom: 160),
                   style: const TextStyle(color: Colors.white),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -315,6 +309,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
+                  scrollPadding: const EdgeInsets.only(bottom: 180),
                   style: const TextStyle(color: Colors.white),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {

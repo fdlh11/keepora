@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/otp_service.dart';
+import '../utils/top_notif.dart';
 
 class LupaPasswordScreen extends StatefulWidget {
   const LupaPasswordScreen({super.key});
@@ -19,11 +20,10 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
     final email = _emailController.text.trim();
 
     if (email.isEmpty || !email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Silakan masukkan alamat email Anda yang valid.'),
-          backgroundColor: Colors.redAccent,
-        ),
+      showTopNotif(
+        context,
+        'Silakan masukkan alamat email Anda yang valid.',
+        isError: true,
       );
       return;
     }
@@ -33,23 +33,18 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
     try {
       await _otpService.sendOtpToEmail(email);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Kode OTP 6 digit telah dikirimkan ke email Anda.',
-            ),
-            backgroundColor: Colors.green,
-          ),
+        showTopNotif(
+          context,
+          'Kode OTP 6 digit telah dikirimkan ke email Anda.',
         );
         Navigator.pushNamed(context, '/verifOTP', arguments: email);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.redAccent,
-          ),
+        showTopNotif(
+          context,
+          e.toString().replaceAll('Exception: ', ''),
+          isError: true,
         );
       }
     } finally {
@@ -126,6 +121,7 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
+                scrollPadding: const EdgeInsets.only(bottom: 140),
                 style: const TextStyle(color: Colors.black87),
                 decoration: InputDecoration(
                   hintText: 'Masukkan email Anda...',
