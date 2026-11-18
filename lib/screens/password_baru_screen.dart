@@ -31,13 +31,20 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
       return;
     }
 
+    if (_email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sesi email tidak ditemukan. Silakan ulangi dari awal.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Panggil endpoint Admin SDK untuk updatePassword(_email, newPassword)
-      if (_email.isNotEmpty) {
-        await _otpService.clearOtp(_email);
-      }
+      await _otpService.updatePasswordWithOtp(_email, newPassword);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -52,7 +59,7 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal menyimpan password: $e'),
+            content: Text(e.toString().replaceAll('Exception: ', '')),
             backgroundColor: Colors.redAccent,
           ),
         );
