@@ -11,17 +11,59 @@ class RegisterScreen extends StatefulWidget {
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends State<RegisterScreen>
+    with WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+  final FocusNode _emailFocus = FocusNode();
+  final FocusNode _passwordFocus = FocusNode();
+  final FocusNode _confirmPasswordFocus = FocusNode();
   final AuthService _authService = AuthService();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _emailFocus.addListener(() => _scrollToFocused(animate: true));
+    _passwordFocus.addListener(() => _scrollToFocused(animate: true));
+    _confirmPasswordFocus.addListener(() => _scrollToFocused(animate: true));
+  }
+
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    _scrollToFocused(animate: false);
+  }
+
+  void _scrollToFocused({required bool animate}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      FocusNode? active;
+      if (_confirmPasswordFocus.hasFocus) {
+        active = _confirmPasswordFocus;
+      } else if (_passwordFocus.hasFocus) {
+        active = _passwordFocus;
+      } else if (_emailFocus.hasFocus) {
+        active = _emailFocus;
+      }
+
+      if (active?.context != null) {
+        Scrollable.ensureVisible(
+          active!.context!,
+          alignment: 0.45,
+          duration: animate ? const Duration(milliseconds: 200) : Duration.zero,
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
 
   String? _validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
@@ -95,22 +137,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    _confirmPasswordFocus.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF0056C6);
+    final isKeyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return Scaffold(
       backgroundColor: primaryBlue,
       body: SafeArea(
         child: SingleChildScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 100.0),
+          padding: EdgeInsets.fromLTRB(
+            24.0,
+            16.0,
+            24.0,
+            isKeyboardOpen ? 100.0 : 32.0,
+          ),
           child: Form(
             key: _formKey,
             child: Column(
@@ -165,9 +217,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _emailController,
+                  focusNode: _emailFocus,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  scrollPadding: const EdgeInsets.only(bottom: 120),
                   style: const TextStyle(color: Colors.white),
                   validator: _validateEmail,
                   decoration: InputDecoration(
@@ -222,9 +274,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passwordController,
+                  focusNode: _passwordFocus,
                   obscureText: _obscurePassword,
                   textInputAction: TextInputAction.next,
-                  scrollPadding: const EdgeInsets.only(bottom: 120),
                   style: const TextStyle(color: Colors.white),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -300,10 +352,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _confirmPasswordController,
+                  focusNode: _confirmPasswordFocus,
                   obscureText: _obscureConfirmPassword,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _handleRegister(),
-                  scrollPadding: const EdgeInsets.only(bottom: 120),
                   style: const TextStyle(color: Colors.white),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {

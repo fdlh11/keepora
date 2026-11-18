@@ -11,13 +11,47 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final FocusNode _emailFocus = FocusNode();
+  final FocusNode _passwordFocus = FocusNode();
   final AuthService _authService = AuthService();
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _emailFocus.addListener(() => _scrollToFocused(animate: true));
+    _passwordFocus.addListener(() => _scrollToFocused(animate: true));
+  }
+
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    _scrollToFocused(animate: false);
+  }
+
+  void _scrollToFocused({required bool animate}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final FocusNode? active = _passwordFocus.hasFocus
+          ? _passwordFocus
+          : (_emailFocus.hasFocus ? _emailFocus : null);
+
+      if (active?.context != null) {
+        Scrollable.ensureVisible(
+          active!.context!,
+          alignment: 0.45,
+          duration: animate ? const Duration(milliseconds: 200) : Duration.zero,
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
 
   void _handleLogin() async {
     final email = _emailController.text.trim();
@@ -52,21 +86,30 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _emailController.dispose();
     _passwordController.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF0056C6);
+    final isKeyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return Scaffold(
       backgroundColor: primaryBlue,
       body: SafeArea(
         child: SingleChildScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 100.0),
+          padding: EdgeInsets.fromLTRB(
+            24.0,
+            16.0,
+            24.0,
+            isKeyboardOpen ? 100.0 : 32.0,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -105,9 +148,9 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 8),
               TextField(
                 controller: _emailController,
+                focusNode: _emailFocus,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
-                scrollPadding: const EdgeInsets.only(bottom: 120),
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'Masukkan email Anda...',
@@ -143,10 +186,10 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 8),
               TextField(
                 controller: _passwordController,
+                focusNode: _passwordFocus,
                 obscureText: _obscurePassword,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _handleLogin(),
-                scrollPadding: const EdgeInsets.only(bottom: 120),
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'Masukkan Password Anda...',
