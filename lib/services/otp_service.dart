@@ -11,6 +11,10 @@ class OtpService {
   static const String _templateId = 'template_oz33uq5';
   static const String _publicKey = 'kzO2j_1GpbQArup1F';
 
+  // URL Backend Vercel untuk memperbarui password Firebase Auth
+  static const String _resetApiUrl =
+      'https://keepora-api.vercel.app/api/reset-password';
+
   // Generate OTP 6 digit, simpan ke Firestore, dan kirim via EmailJS
   Future<void> sendOtpToEmail(String email) async {
     final normalizedEmail = email.trim().toLowerCase();
@@ -79,6 +83,23 @@ class OtpService {
 
     await doc.reference.update({'verified': true});
     return true;
+  }
+
+  // Perbarui password akun di Firebase Auth melalui endpoint Vercel
+  Future<void> updatePasswordWithOtp(String email, String newPassword) async {
+    final response = await http.post(
+      Uri.parse(_resetApiUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email.trim().toLowerCase(),
+        'newPassword': newPassword,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+      throw Exception(body['error'] ?? 'Gagal memperbarui kata sandi.');
+    }
   }
 
   // Hapus dokumen OTP setelah proses reset selesai
