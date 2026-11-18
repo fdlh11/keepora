@@ -66,12 +66,11 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 32.0),
+          padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 100.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-
               Center(
                 child: Image.asset(
                   'assets/image/logo.png',
@@ -80,9 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   fit: BoxFit.contain,
                 ),
               ),
-
               const SizedBox(height: 32),
-
               Text(
                 'Selamat Datang',
                 style: GoogleFonts.montserrat(
@@ -96,9 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 'Silakan masuk untuk mengelola barang pribadi Anda',
                 style: TextStyle(fontSize: 13, color: Colors.white70),
               ),
-
               const SizedBox(height: 28),
-
               const Text(
                 'Email',
                 style: TextStyle(
@@ -111,7 +106,8 @@ class _LoginScreenState extends State<LoginScreen> {
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                scrollPadding: const EdgeInsets.only(bottom: 140),
+                textInputAction: TextInputAction.next,
+                scrollPadding: const EdgeInsets.only(bottom: 120),
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'Masukkan email Anda...',
@@ -135,9 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 18),
-
               const Text(
                 'Password',
                 style: TextStyle(
@@ -150,7 +144,9 @@ class _LoginScreenState extends State<LoginScreen> {
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
-                scrollPadding: const EdgeInsets.only(bottom: 160),
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _handleLogin(),
+                scrollPadding: const EdgeInsets.only(bottom: 120),
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'Masukkan Password Anda...',
@@ -187,7 +183,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -200,9 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 24),
-
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -227,9 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                 ),
               ),
-
               const SizedBox(height: 16),
-
               Center(
                 child: GestureDetector(
                   onTap: () {

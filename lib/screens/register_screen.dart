@@ -110,7 +110,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 32.0),
+          padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 100.0),
           child: Form(
             key: _formKey,
             child: Column(
@@ -130,9 +130,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
                 Center(
                   child: Image.asset(
                     'assets/image/logo.png',
@@ -141,9 +139,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     fit: BoxFit.contain,
                   ),
                 ),
-
                 const SizedBox(height: 28),
-
                 Text(
                   'Buat Akun',
                   style: GoogleFonts.montserrat(
@@ -157,9 +153,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   'Silakan daftar untuk mulai mengelola barang pribadi Anda',
                   style: TextStyle(fontSize: 13, color: Colors.white70),
                 ),
-
                 const SizedBox(height: 28),
-
                 const Text(
                   'Email',
                   style: TextStyle(
@@ -172,7 +166,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  scrollPadding: const EdgeInsets.only(bottom: 140),
+                  textInputAction: TextInputAction.next,
+                  scrollPadding: const EdgeInsets.only(bottom: 120),
                   style: const TextStyle(color: Colors.white),
                   validator: _validateEmail,
                   decoration: InputDecoration(
@@ -215,9 +210,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 18),
-
                 const Text(
                   'Password',
                   style: TextStyle(
@@ -230,7 +223,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
-                  scrollPadding: const EdgeInsets.only(bottom: 160),
+                  textInputAction: TextInputAction.next,
+                  scrollPadding: const EdgeInsets.only(bottom: 120),
                   style: const TextStyle(color: Colors.white),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -294,9 +288,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 18),
-
                 const Text(
                   'Konfirmasi Password',
                   style: TextStyle(
@@ -309,7 +301,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
-                  scrollPadding: const EdgeInsets.only(bottom: 180),
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _handleRegister(),
+                  scrollPadding: const EdgeInsets.only(bottom: 120),
                   style: const TextStyle(color: Colors.white),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -370,9 +364,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 32),
-
                 SizedBox(
                   width: double.infinity,
                   height: 50,
