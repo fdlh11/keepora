@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../main.dart';
 import '../services/asset_service.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
@@ -21,13 +22,12 @@ class _AkunScreenState extends State<AkunScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  bool _isDarkTheme = false;
-
   Future<void> _confirmLogout() async {
+    final isDark = appThemeNotifier.value == ThemeMode.dark;
     final bool? shouldLogout = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text(
           'Keluar Akun',
@@ -71,13 +71,14 @@ class _AkunScreenState extends State<AkunScreen> {
 
   Future<void> _showEditProfileDialog(String currentName) async {
     final nameController = TextEditingController(text: currentName);
+    final isDark = appThemeNotifier.value == ThemeMode.dark;
     bool isSaving = false;
 
     await showDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           title: Text(
             'Edit Profile',
@@ -128,11 +129,11 @@ class _AkunScreenState extends State<AkunScreen> {
                         final user = _auth.currentUser;
                         if (user != null) {
                           await user.updateDisplayName(newName);
-                          await _firestore
-                              .collection('users')
-                              .doc(user.uid)
-                              .set(
-                            {'name': newName, 'updatedAt': FieldValue.serverTimestamp()},
+                          await _firestore.collection('users').doc(user.uid).set(
+                            {
+                              'name': newName,
+                              'updatedAt': FieldValue.serverTimestamp(),
+                            },
                             SetOptions(merge: true),
                           );
                         }
@@ -149,7 +150,9 @@ class _AkunScreenState extends State<AkunScreen> {
                       } catch (e) {
                         if (mounted) {
                           ScaffoldMessenger.of(this.context).showSnackBar(
-                            SnackBar(content: Text('Gagal memperbarui profil: $e')),
+                            SnackBar(
+                              content: Text('Gagal memperbarui profil: $e'),
+                            ),
                           );
                         }
                       } finally {
@@ -182,13 +185,14 @@ class _AkunScreenState extends State<AkunScreen> {
   Future<void> _showChangePasswordDialog() async {
     final newPassController = TextEditingController();
     final confirmPassController = TextEditingController();
+    final isDark = appThemeNotifier.value == ThemeMode.dark;
     bool isSaving = false;
 
     await showDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           title: Text(
             'Ubah Password',
@@ -305,68 +309,15 @@ class _AkunScreenState extends State<AkunScreen> {
     );
   }
 
-  void _showThemeBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Pilih Tema Aplikasi',
-              style: GoogleFonts.montserrat(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ListTile(
-              leading: const Icon(Icons.wb_sunny_outlined, color: Color(0xFF004AAD)),
-              title: const Text('Mode Terang (Default)'),
-              trailing: !_isDarkTheme
-                  ? const Icon(Icons.check_circle, color: Color(0xFF004AAD))
-                  : null,
-              onTap: () {
-                setState(() => _isDarkTheme = false);
-                Navigator.pop(sheetContext);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.dark_mode_outlined, color: Color(0xFF004AAD)),
-              title: const Text('Mode Gelap'),
-              trailing: _isDarkTheme
-                  ? const Icon(Icons.check_circle, color: Color(0xFF004AAD))
-                  : null,
-              onTap: () {
-                setState(() => _isDarkTheme = true);
-                Navigator.pop(sheetContext);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Preferensi tema gelap disimpan.'),
-                    backgroundColor: Color(0xFF004AAD),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> _exportMaintenanceData() async {
     try {
       final docs = await _assetService.getAllMaintenanceHistoryStream().first;
       if (docs.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Belum ada data riwayat untuk diekspor.')),
+            const SnackBar(
+              content: Text('Belum ada data riwayat untuk diekspor.'),
+            ),
           );
         }
         return;
@@ -378,7 +329,8 @@ class _AkunScreenState extends State<AkunScreen> {
       buffer.writeln('----------------------------------------');
       for (int i = 0; i < docs.length; i++) {
         final data = docs[i].data() as Map<String, dynamic>? ?? {};
-        final title = (data['title'] ?? data['detail'] ?? 'Perawatan').toString();
+        final title =
+            (data['title'] ?? data['detail'] ?? 'Perawatan').toString();
         final assetName = (data['assetName'] ?? '-').toString();
         final type = (data['maintenanceType'] ?? 'Perawatan').toString();
         final cost = (data['cost'] ?? '0').toString();
@@ -409,230 +361,296 @@ class _AkunScreenState extends State<AkunScreen> {
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF004AAD);
     final user = _auth.currentUser;
-    final fallbackName = (user?.displayName != null && user!.displayName!.isNotEmpty)
-        ? user.displayName!
-        : (user?.email?.split('@').first ?? 'Pengguna Keepora');
+    final fallbackName =
+        (user?.displayName != null && user!.displayName!.isNotEmpty)
+            ? user.displayName!
+            : (user?.email?.split('@').first ?? 'Pengguna Keepora');
     final email = user?.email ?? '-';
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF3F4F6),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-        title: Text(
-          'Pengaturan Akun',
-          style: GoogleFonts.montserrat(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
-        ),
-      ),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: user != null
-            ? _firestore.collection('users').doc(user.uid).snapshots()
-            : const Stream.empty(),
-        builder: (context, snapshot) {
-          final userData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
-          final displayName = (userData['name'] ?? fallbackName).toString();
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: appThemeNotifier,
+      builder: (context, themeMode, _) {
+        final isDark = themeMode == ThemeMode.dark;
+        final bgColor =
+            isDark ? const Color(0xFF121212) : const Color(0xFFF3F4F6);
+        final cardBgColor =
+            isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6);
+        final borderColor =
+            isDark ? Colors.grey.shade800 : Colors.grey.shade400;
+        final titleColor = isDark ? Colors.white : Colors.black87;
+        final itemTextColor = isDark ? Colors.white70 : Colors.black87;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(18, 8, 18, 120),
-            child: Column(
-              children: [
-                // Kartu Biru Profil Pengguna
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-                  decoration: BoxDecoration(
-                    color: primaryBlue,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 78,
-                        height: 78,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFD1D5DB),
-                          shape: BoxShape.circle,
+        return Scaffold(
+          backgroundColor: bgColor,
+          appBar: AppBar(
+            backgroundColor: bgColor,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            centerTitle: true,
+            automaticallyImplyLeading: false,
+            title: Text(
+              'Pengaturan Akun',
+              style: GoogleFonts.montserrat(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: titleColor,
+              ),
+            ),
+          ),
+          body: StreamBuilder<DocumentSnapshot>(
+            stream: user != null
+                ? _firestore.collection('users').doc(user.uid).snapshots()
+                : const Stream.empty(),
+            builder: (context, snapshot) {
+              final userData =
+                  snapshot.data?.data() as Map<String, dynamic>? ?? {};
+              final displayName =
+                  (userData['name'] ?? fallbackName).toString();
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Kartu Biru Profil Pengguna
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 18,
+                      ),
+                      decoration: BoxDecoration(
+                        color: primaryBlue,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 78,
+                            height: 78,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFD1D5DB),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 18),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  displayName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  email,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                InkWell(
+                                  onTap: () =>
+                                      _showEditProfileDialog(displayName),
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Padding(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 2),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Edit Profile',
+                                          style: TextStyle(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.white
+                                                .withValues(alpha: 0.95),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        const Icon(
+                                          Icons.edit_square,
+                                          size: 15,
+                                          color: Colors.white,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Grup 1: Laporan & Tampilan
+                    Text(
+                      'Laporan & Tampilan',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: titleColor,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildMenuTile(
+                      icon: Icons.file_download_outlined,
+                      label: 'Ekspor Laporan PDF',
+                      cardBgColor: cardBgColor,
+                      borderColor: borderColor,
+                      textColor: itemTextColor,
+                      onTap: _exportMaintenanceData,
+                      trailing: Icon(
+                        Icons.chevron_right_rounded,
+                        color: itemTextColor,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildMenuTile(
+                      icon: isDark
+                          ? Icons.dark_mode_outlined
+                          : Icons.wb_sunny_outlined,
+                      label: 'Tampilan',
+                      cardBgColor: cardBgColor,
+                      borderColor: borderColor,
+                      textColor: itemTextColor,
+                      onTap: () {
+                        appThemeNotifier.value =
+                            isDark ? ThemeMode.light : ThemeMode.dark;
+                      },
+                      trailing: SizedBox(
+                        height: 28,
+                        child: Switch(
+                          value: isDark,
+                          activeColor: Colors.white,
+                          activeTrackColor: primaryBlue,
+                          onChanged: (value) {
+                            appThemeNotifier.value =
+                                value ? ThemeMode.dark : ThemeMode.light;
+                          },
                         ),
                       ),
-                      const SizedBox(width: 18),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Grup 2: Akun & Keamanan
+                    Text(
+                      'Akun & Keamanan',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: titleColor,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildMenuTile(
+                      icon: Icons.settings_outlined,
+                      label: 'Ubah Password',
+                      cardBgColor: cardBgColor,
+                      borderColor: borderColor,
+                      textColor: itemTextColor,
+                      onTap: _showChangePasswordDialog,
+                      trailing: Icon(
+                        Icons.chevron_right_rounded,
+                        color: itemTextColor,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(height: 36),
+
+                    // Tombol Logout (rata kiri selaras kartu menu)
+                    InkWell(
+                      onTap: _confirmLogout,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        width: double.infinity,
+                        height: 52,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: cardBgColor,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: borderColor, width: 1.1),
+                        ),
+                        child: Row(
                           children: [
+                            const Icon(
+                              Icons.logout_rounded,
+                              color: Color(0xFFEF4444),
+                              size: 21,
+                            ),
+                            const SizedBox(width: 12),
                             Text(
-                              displayName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              'Logout',
                               style: GoogleFonts.montserrat(
-                                fontSize: 17,
+                                fontSize: 14.5,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              email,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                color: Colors.white.withValues(alpha: 0.9),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            InkWell(
-                              onTap: () => _showEditProfileDialog(displayName),
-                              borderRadius: BorderRadius.circular(6),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 2),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      'Edit Profile',
-                                      style: TextStyle(
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.white.withValues(alpha: 0.95),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    const Icon(
-                                      Icons.edit_square,
-                                      size: 15,
-                                      color: Colors.white,
-                                    ),
-                                  ],
-                                ),
+                                color: const Color(0xFFEF4444),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 22),
-
-                // Kartu 1: Ubah Password
-                _buildSettingCard(
-                  title: 'Ubah Password',
-                  subtitle:
-                      'Perbarui password untuk melindungi akun dan data perangkat Anda.',
-                  icon: Icons.vpn_key_outlined,
-                  onTap: _showChangePasswordDialog,
-                ),
-                const SizedBox(height: 14),
-
-                // Kartu 2: Tema Aplikasi
-                _buildSettingCard(
-                  title: 'Tema Aplikasi',
-                  subtitle:
-                      'Pilih tema mode terang atau gelap, sesuai keinginan Anda.',
-                  icon: Icons.wb_sunny_outlined,
-                  onTap: _showThemeBottomSheet,
-                ),
-                const SizedBox(height: 14),
-
-                // Kartu 3: Eksport Data Perawatan
-                _buildSettingCard(
-                  title: 'Eksport Data Perawatan',
-                  subtitle:
-                      'Unduh laporan data riwayat perawatan dalam bentuk dokumen.',
-                  icon: Icons.download_rounded,
-                  onTap: _exportMaintenanceData,
-                ),
-                const SizedBox(height: 54),
-
-                // Tombol Logout
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: OutlinedButton.icon(
-                    onPressed: _confirmLogout,
-                    icon: const Icon(
-                      Icons.logout_rounded,
-                      color: Color(0xFFEF4444),
-                      size: 20,
                     ),
-                    label: Text(
-                      'Logout',
-                      style: GoogleFonts.montserrat(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFFEF4444),
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF3F4F6),
-                      side: BorderSide(color: Colors.grey.shade400, width: 1.1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        },
-      ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildSettingCard({
-    required String title,
-    required String subtitle,
+  Widget _buildMenuTile({
     required IconData icon,
+    required String label,
+    required Color cardBgColor,
+    required Color borderColor,
+    required Color textColor,
     required VoidCallback onTap,
+    required Widget trailing,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: const Color(0xFFF3F4F6),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade400),
+          color: cardBgColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: borderColor, width: 1.1),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.montserrat(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-                Icon(icon, size: 22, color: Colors.black87),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Padding(
-              padding: const EdgeInsets.only(right: 24),
+            Icon(icon, size: 21, color: textColor),
+            const SizedBox(width: 12),
+            Expanded(
               child: Text(
-                subtitle,
+                label,
                 style: TextStyle(
-                  fontSize: 12.5,
-                  color: Colors.grey.shade700,
-                  height: 1.35,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: textColor,
                 ),
               ),
             ),
+            trailing,
           ],
         ),
       ),

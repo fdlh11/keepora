@@ -14,6 +14,10 @@ import 'screens/lupa_password_screen.dart';
 import 'screens/verif_otp_screen.dart';
 import 'screens/password_baru_screen.dart';
 
+// Pengontrol tema global aplikasi (Terang / Gelap)
+final ValueNotifier<ThemeMode> appThemeNotifier =
+    ValueNotifier<ThemeMode>(ThemeMode.light);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -25,47 +29,78 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(
-        // default seluruh aplikasi pake roboto
-        textTheme: GoogleFonts.robotoTextTheme().copyWith(
-          // judul pake montserrat
-          displayLarge: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
-          displayMedium: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
-          displaySmall: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
-          headlineLarge: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
-          headlineMedium: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
-          headlineSmall: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
-          titleLarge: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
-          titleMedium: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
-        ),
-        // judul app bar seluruh halaman pake montserrat
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: true,
-          titleTextStyle: GoogleFonts.montserrat(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+    final baseTextTheme = GoogleFonts.robotoTextTheme().copyWith(
+      displayLarge: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+      displayMedium: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+      displaySmall: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+      headlineLarge: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+      headlineMedium: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+      headlineSmall: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+      titleLarge: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+      titleMedium: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
+    );
+
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: appThemeNotifier,
+      builder: (context, currentMode, _) {
+        return MaterialApp(
+          themeMode: currentMode,
+          theme: ThemeData(
+            brightness: Brightness.light,
+            textTheme: baseTextTheme,
+            appBarTheme: AppBarTheme(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              centerTitle: true,
+              titleTextStyle: GoogleFonts.montserrat(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            scaffoldBackgroundColor: Colors.white,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF0056C6),
+              brightness: Brightness.light,
+            ),
           ),
-        ),
-        scaffoldBackgroundColor: Colors.white,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0056C6)),
-      ),
-      debugShowCheckedModeBanner: false,
-      title: 'Keepora',
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const SplashScreen(),
-        '/splash': (context) => const SplashScreen(),
-        '/onboarding': (context) => const OnboardingScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/LupaPassword': (context) => const LupaPasswordScreen(),
-        '/verifOTP': (context) => const VerifOtpScreen(),
-        '/passwordBaru': (context) => const PasswordBaruScreen(),
-        '/home': (context) => const NavbarScreen(),
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            textTheme: baseTextTheme.apply(
+              bodyColor: Colors.white,
+              displayColor: Colors.white,
+            ),
+            appBarTheme: AppBarTheme(
+              backgroundColor: const Color(0xFF121212),
+              elevation: 0,
+              centerTitle: true,
+              titleTextStyle: GoogleFonts.montserrat(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            scaffoldBackgroundColor: const Color(0xFF121212),
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF0056C6),
+              brightness: Brightness.dark,
+            ),
+          ),
+          debugShowCheckedModeBanner: false,
+          title: 'Keepora',
+          initialRoute: '/',
+          routes: {
+            '/': (context) => const SplashScreen(),
+            '/splash': (context) => const SplashScreen(),
+            '/onboarding': (context) => const OnboardingScreen(),
+            '/login': (context) => const LoginScreen(),
+            '/register': (context) => const RegisterScreen(),
+            '/LupaPassword': (context) => const LupaPasswordScreen(),
+            '/verifOTP': (context) => const VerifOtpScreen(),
+            '/passwordBaru': (context) => const PasswordBaruScreen(),
+            '/home': (context) => const NavbarScreen(),
+          },
+        );
       },
     );
   }
@@ -82,12 +117,10 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: authService.authStateChanges,
       builder: (context, snapshot) {
-        // Saat masih loading memuat sesi Firebase
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SplashScreen();
         }
 
-        // Jika user sudah login dan email sudah terverifikasi
         if (snapshot.hasData && snapshot.data != null) {
           User user = snapshot.data!;
           if (user.emailVerified) {
@@ -95,7 +128,6 @@ class AuthWrapper extends StatelessWidget {
           }
         }
 
-        // jika belum login di arahkan ke splash
         return const SplashScreen();
       },
     );
