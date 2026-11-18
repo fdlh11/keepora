@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import '../services/otp_service.dart';
 
 class VerifOtpScreen extends StatefulWidget {
   const VerifOtpScreen({super.key});
@@ -13,10 +16,14 @@ class _VerifOtpScreenState extends State<VerifOtpScreen> {
     6,
     (_) => TextEditingController(),
   );
+  final OtpService _otpService = OtpService();
   bool _isLoading = false;
 
-  void _handleVerify() {
-    String otp = _controllers.map((c) => c.text).join();
+  String get _email =>
+      (ModalRoute.of(context)?.settings.arguments as String?) ?? '';
+
+  Future<void> _handleVerify() async {
+    final otp = _controllers.map((c) => c.text).join();
     if (otp.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -29,12 +36,54 @@ class _VerifOtpScreenState extends State<VerifOtpScreen> {
 
     setState(() => _isLoading = true);
 
-    Future.delayed(const Duration(milliseconds: 800), () {
+    try {
+      await _otpService.verifyOtp(_email, otp);
+      if (mounted) {
+        Navigator.pushReplacementNamed(
+          context,
+          '/passwordBaru',
+          arguments: _email,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
       if (mounted) {
         setState(() => _isLoading = false);
-        Navigator.pushNamed(context, '/passwordBaru');
       }
-    });
+    }
+  }
+
+  Future<void> _handleResend() async {
+    if (_email.isEmpty) return;
+
+    try {
+      await _otpService.sendOtpToEmail(_email);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Kode OTP baru telah dikirim ulang ke email Anda.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -63,7 +112,6 @@ class _VerifOtpScreenState extends State<VerifOtpScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 10),
-
               Center(
                 child: Column(
                   children: [
@@ -73,7 +121,6 @@ class _VerifOtpScreenState extends State<VerifOtpScreen> {
                       color: Colors.black87,
                     ),
                     const SizedBox(height: 16),
-                    // Judul (Montserrat)
                     Text(
                       'Masukkan Kode OTP',
                       style: GoogleFonts.montserrat(
@@ -95,9 +142,7 @@ class _VerifOtpScreenState extends State<VerifOtpScreen> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 40),
-
               const Text(
                 'Masukkan Kode 6 digit OTP',
                 style: TextStyle(
@@ -106,9 +151,7 @@ class _VerifOtpScreenState extends State<VerifOtpScreen> {
                   color: Colors.black87,
                 ),
               ),
-
               const SizedBox(height: 16),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(6, (index) {
@@ -120,6 +163,7 @@ class _VerifOtpScreenState extends State<VerifOtpScreen> {
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       maxLength: 1,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -146,20 +190,10 @@ class _VerifOtpScreenState extends State<VerifOtpScreen> {
                   );
                 }),
               ),
-
               const SizedBox(height: 20),
-
               Center(
                 child: GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Kode OTP telah dikirim ulang ke email Anda.',
-                        ),
-                      ),
-                    );
-                  },
+                  onTap: _handleResend,
                   child: const Text(
                     'Tidak menerima kode? Kirim Ulang',
                     style: TextStyle(
@@ -170,9 +204,7 @@ class _VerifOtpScreenState extends State<VerifOtpScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 100),
-
               SizedBox(
                 width: double.infinity,
                 height: 50,

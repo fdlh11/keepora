@@ -19,6 +19,7 @@ dependencies:
   intl: ^0.20.3
   google_fonts: ^6.2.1
   firebase_storage: ^12.4.10
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:

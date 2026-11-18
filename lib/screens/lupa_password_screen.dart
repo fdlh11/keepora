@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../services/auth_service.dart';
+import '../services/otp_service.dart';
 
 class LupaPasswordScreen extends StatefulWidget {
   const LupaPasswordScreen({super.key});
@@ -12,16 +12,16 @@ class LupaPasswordScreen extends StatefulWidget {
 
 class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
-  final AuthService _authService = AuthService();
+  final OtpService _otpService = OtpService();
   bool _isLoading = false;
 
   void _handleSendReset() async {
     final email = _emailController.text.trim();
 
-    if (email.isEmpty) {
+    if (email.isEmpty || !email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Silakan masukkan email Anda.'),
+          content: Text('Silakan masukkan alamat email Anda yang valid.'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -31,12 +31,12 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _authService.sendPasswordReset(email);
+      await _otpService.sendOtpToEmail(email);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Link verifikasi reset password telah dikirim ke email Anda.',
+              'Kode OTP 6 digit telah dikirimkan ke email Anda.',
             ),
             backgroundColor: Colors.green,
           ),
@@ -47,7 +47,7 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text(e.toString().replaceAll('Exception: ', '')),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -83,7 +83,6 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 10),
-
               Center(
                 child: Column(
                   children: [
@@ -93,7 +92,6 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
                       color: Colors.black87,
                     ),
                     const SizedBox(height: 12),
-                    // Judul
                     Text(
                       'Lupa Password?',
                       style: GoogleFonts.montserrat(
@@ -104,7 +102,7 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Masukkan email akun Anda untuk menerima link pemulihan password.',
+                      'Masukkan email akun Anda untuk menerima kode OTP pemulihan password.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
@@ -115,9 +113,7 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 40),
-
               const Text(
                 'Email',
                 style: TextStyle(
@@ -149,9 +145,7 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 280),
-
               SizedBox(
                 width: double.infinity,
                 height: 50,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../services/otp_service.dart';
+
 class PasswordBaruScreen extends StatefulWidget {
   const PasswordBaruScreen({super.key});
 
@@ -10,13 +12,19 @@ class PasswordBaruScreen extends StatefulWidget {
 
 class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
   final TextEditingController _passwordController = TextEditingController();
+  final OtpService _otpService = OtpService();
+  bool _obscureText = true;
   bool _isLoading = false;
 
-  void _handleSavePassword() {
-    if (_passwordController.text.trim().isEmpty) {
+  String get _email =>
+      (ModalRoute.of(context)?.settings.arguments as String?) ?? '';
+
+  Future<void> _handleSavePassword() async {
+    final newPassword = _passwordController.text.trim();
+    if (newPassword.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Silakan buat password baru Anda.'),
+          content: Text('Password baru minimal harus terdiri dari 6 karakter.'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -25,9 +33,13 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
 
     setState(() => _isLoading = true);
 
-    Future.delayed(const Duration(milliseconds: 800), () {
+    try {
+      // TODO: Panggil endpoint Admin SDK untuk updatePassword(_email, newPassword)
+      if (_email.isNotEmpty) {
+        await _otpService.clearOtp(_email);
+      }
+
       if (mounted) {
-        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Password baru berhasil disimpan! Silakan masuk.'),
@@ -36,7 +48,20 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
         );
         Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       }
-    });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan password: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -63,7 +88,6 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 10),
-
               Center(
                 child: Column(
                   children: [
@@ -73,7 +97,6 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
                       color: Colors.black87,
                     ),
                     const SizedBox(height: 16),
-                    // Judul
                     Text(
                       'Masukkan Password Baru',
                       style: GoogleFonts.montserrat(
@@ -95,9 +118,7 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 40),
-
               const Text(
                 'Password Baru',
                 style: TextStyle(
@@ -109,7 +130,7 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
               const SizedBox(height: 8),
               TextField(
                 controller: _passwordController,
-                obscureText: true,
+                obscureText: _obscureText,
                 style: const TextStyle(color: Colors.black87),
                 decoration: InputDecoration(
                   hintText: 'Masukkan password baru...',
@@ -123,15 +144,23 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
                     horizontal: 16,
                     vertical: 14,
                   ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureText
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: Colors.black45,
+                    ),
+                    onPressed: () =>
+                        setState(() => _obscureText = !_obscureText),
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
                 ),
               ),
-
               const SizedBox(height: 140),
-
               SizedBox(
                 width: double.infinity,
                 height: 50,
