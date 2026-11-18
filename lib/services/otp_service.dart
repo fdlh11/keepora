@@ -49,7 +49,7 @@ class OtpService {
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Gagal mengirim kode OTP ke email Anda.');
+      throw Exception('(${response.statusCode}) ${response.body}');
     }
   }
 
