@@ -24,7 +24,7 @@ class _AkunScreenState extends State<AkunScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<void> _confirmLogout() async {
-    final isDark = appThemeNotifier.value == ThemeMode.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bool? shouldLogout = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -72,7 +72,7 @@ class _AkunScreenState extends State<AkunScreen> {
 
   Future<void> _showEditProfileDialog(String currentName) async {
     final nameController = TextEditingController(text: currentName);
-    final isDark = appThemeNotifier.value == ThemeMode.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     bool isSaving = false;
 
     await showDialog(
@@ -188,7 +188,7 @@ class _AkunScreenState extends State<AkunScreen> {
   Future<void> _showChangePasswordDialog() async {
     final newPassController = TextEditingController();
     final confirmPassController = TextEditingController();
-    final isDark = appThemeNotifier.value == ThemeMode.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     bool isSaving = false;
 
     await showDialog(
@@ -366,7 +366,7 @@ class _AkunScreenState extends State<AkunScreen> {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: appThemeNotifier,
       builder: (context, themeMode, _) {
-        final isDark = themeMode == ThemeMode.dark;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         final bgColor =
             isDark ? const Color(0xFF121212) : const Color(0xFFF3F4F6);
         final cardBgColor =
@@ -522,20 +522,14 @@ class _AkunScreenState extends State<AkunScreen> {
                       cardBgColor: cardBgColor,
                       borderColor: borderColor,
                       textColor: itemTextColor,
-                      onTap: () {
-                        appThemeNotifier.value =
-                            isDark ? ThemeMode.light : ThemeMode.dark;
-                      },
+                      onTap: () => setAppTheme(!isDark),
                       trailing: SizedBox(
                         height: 28,
                         child: Switch(
                           value: isDark,
                           activeColor: Colors.white,
                           activeTrackColor: primaryBlue,
-                          onChanged: (value) {
-                            appThemeNotifier.value =
-                                value ? ThemeMode.dark : ThemeMode.light;
-                          },
+                          onChanged: (value) => setAppTheme(value),
                         ),
                       ),
                     ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
@@ -14,13 +15,36 @@ import 'screens/lupa_password_screen.dart';
 import 'screens/verif_otp_screen.dart';
 import 'screens/password_baru_screen.dart';
 
-// Pengontrol tema global aplikasi (Terang / Gelap)
+const String _themePrefKey = 'keepora_theme_mode';
+
+// Pengontrol tema global aplikasi (Default mengikuti tema sistem HP)
 final ValueNotifier<ThemeMode> appThemeNotifier =
-    ValueNotifier<ThemeMode>(ThemeMode.light);
+    ValueNotifier<ThemeMode>(ThemeMode.system);
+
+// Membaca tema tersimpan sebelum aplikasi dirender
+Future<void> loadSavedTheme() async {
+  final prefs = await SharedPreferences.getInstance();
+  final savedTheme = prefs.getString(_themePrefKey);
+  if (savedTheme == 'dark') {
+    appThemeNotifier.value = ThemeMode.dark;
+  } else if (savedTheme == 'light') {
+    appThemeNotifier.value = ThemeMode.light;
+  } else {
+    appThemeNotifier.value = ThemeMode.system;
+  }
+}
+
+// Mengubah tema sekaligus menyimpannya ke memori lokal HP
+Future<void> setAppTheme(bool isDark) async {
+  appThemeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString(_themePrefKey, isDark ? 'dark' : 'light');
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await loadSavedTheme();
   runApp(const MyApp());
 }
 
