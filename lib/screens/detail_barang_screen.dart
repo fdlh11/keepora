@@ -46,12 +46,13 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
       return;
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bool? shouldLeave = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           child: Column(
@@ -63,16 +64,16 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                 style: GoogleFonts.montserrat(
                   fontSize: 19,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: isDark ? Colors.white : Colors.black,
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Perubahan pada kondisi barang atau rincian perawatan belum disimpan. Keluar tanpa menyimpan?',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.black87,
+                  color: isDark ? Colors.white70 : Colors.black87,
                   height: 1.4,
                 ),
               ),
@@ -105,7 +106,9 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(dialogContext, true),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF004AAD),
+                        foregroundColor: isDark
+                            ? const Color(0xFF60A5FA)
+                            : const Color(0xFF004AAD),
                         side: const BorderSide(
                           color: Color(0xFF64A1F4),
                           width: 1.2,
@@ -138,10 +141,11 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
   }
 
   Future<void> _confirmDeleteAsset() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text(
           'Hapus Barang',
@@ -221,17 +225,21 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     }
   }
 
-  Widget _whiteInfoCard({
+  Widget _infoCard({
     required String label,
     required String value,
+    required bool isDark,
   }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,16 +248,16 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
             label,
             style: TextStyle(
               fontSize: 11.5,
-              color: Colors.grey.shade600,
+              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13.5,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: isDark ? Colors.white : Colors.black87,
             ),
           ),
         ],
@@ -257,20 +265,22 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     );
   }
 
-  InputDecoration _editableBoxDecoration(String hint) {
+  InputDecoration _editableBoxDecoration(String hint, bool isDark) {
+    final borderColor =
+        isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0);
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: BorderSide(color: borderColor),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: BorderSide(color: borderColor),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -279,8 +289,8 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     );
   }
 
-  Widget _buildAssetPhoto(String photoUrl) {
-    if (photoUrl.isEmpty) return _photoPlaceholder();
+  Widget _buildAssetPhoto(String photoUrl, bool isDark) {
+    if (photoUrl.isEmpty) return _photoPlaceholder(isDark);
 
     if (photoUrl.startsWith('data:image')) {
       try {
@@ -289,31 +299,37 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
         return Image.memory(
           bytes,
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => _photoPlaceholder(),
+          errorBuilder: (_, _, _) => _photoPlaceholder(isDark),
         );
       } catch (_) {
-        return _photoPlaceholder();
+        return _photoPlaceholder(isDark);
       }
     }
 
     return Image.network(
       photoUrl,
       fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => _photoPlaceholder(),
+      errorBuilder: (_, _, _) => _photoPlaceholder(isDark),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF004AAD);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor =
+        isDark ? const Color(0xFF121212) : const Color(0xFFF3F4F6);
+    final textPrimary = isDark ? Colors.white : Colors.black;
 
     return StreamBuilder<QuerySnapshot>(
       stream: _assetService.getAssetsStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: Color(0xFFF3F4F6),
-            body: Center(child: CircularProgressIndicator(color: primaryBlue)),
+          return Scaffold(
+            backgroundColor: bgColor,
+            body: const Center(
+              child: CircularProgressIndicator(color: primaryBlue),
+            ),
           );
         }
 
@@ -322,8 +338,8 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
 
         if (matched.isEmpty) {
           return Scaffold(
-            backgroundColor: const Color(0xFFF3F4F6),
-            appBar: AppBar(backgroundColor: const Color(0xFFF3F4F6)),
+            backgroundColor: bgColor,
+            appBar: AppBar(backgroundColor: bgColor),
             body: const Center(child: Text('Data barang tidak ditemukan.')),
           );
         }
@@ -355,14 +371,14 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
             await _handleBackPress();
           },
           child: Scaffold(
-            backgroundColor: const Color(0xFFF3F4F6),
+            backgroundColor: bgColor,
             appBar: AppBar(
-              backgroundColor: const Color(0xFFF3F4F6),
+              backgroundColor: bgColor,
               elevation: 0,
               scrolledUnderElevation: 0,
               centerTitle: true,
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                icon: Icon(Icons.arrow_back, color: textPrimary),
                 onPressed: _isSaving ? null : _handleBackPress,
               ),
               title: Text(
@@ -370,7 +386,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                 style: GoogleFonts.montserrat(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: textPrimary,
                 ),
               ),
               actions: [
@@ -390,12 +406,13 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Banner Foto Barang Lebar
                   Container(
                     width: double.infinity,
                     height: 205,
-                    color: const Color(0xFFE5E7EB),
-                    child: _buildAssetPhoto(photoUrl),
+                    color: isDark
+                        ? const Color(0xFF1E1E1E)
+                        : const Color(0xFFE5E7EB),
+                    child: _buildAssetPhoto(photoUrl, isDark),
                   ),
 
                   Padding(
@@ -403,7 +420,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Nama Barang + Badge Kategori
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -413,7 +429,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                                 style: GoogleFonts.montserrat(
                                   fontSize: 18.5,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black,
+                                  color: textPrimary,
                                 ),
                               ),
                             ),
@@ -424,17 +440,24 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                                 vertical: 5,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFDBEAFE),
+                                color: isDark
+                                    ? const Color(0xFF172554)
+                                    : const Color(0xFFDBEAFE),
                                 borderRadius: BorderRadius.circular(20),
-                                border:
-                                    Border.all(color: const Color(0xFF93C5FD)),
+                                border: Border.all(
+                                  color: isDark
+                                      ? const Color(0xFF1D4ED8)
+                                      : const Color(0xFF93C5FD),
+                                ),
                               ),
                               child: Text(
                                 category,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: primaryBlue,
+                                  color: isDark
+                                      ? const Color(0xFF60A5FA)
+                                      : primaryBlue,
                                 ),
                               ),
                             ),
@@ -442,42 +465,44 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                         ),
                         const SizedBox(height: 18),
 
-                        // Informasi Pembelian
                         Text(
                           'Informasi Pembelian',
                           style: GoogleFonts.montserrat(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
+                            color: textPrimary,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
                             Expanded(
-                              child: _whiteInfoCard(
+                              child: _infoCard(
                                 label: purchaseType == 'Second'
                                     ? 'Tanggal Pembelian (Second)'
                                     : 'Tanggal Pembelian',
                                 value: purchaseDate,
+                                isDark: isDark,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: _whiteInfoCard(
+                              child: _infoCard(
                                 label: 'Harga Pembelian',
                                 value: purchasePrice,
+                                isDark: isDark,
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 18),
 
-                        // Kondisi Barang (bisa diedit)
                         Text(
                           'Kondisi Barang',
                           style: GoogleFonts.montserrat(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
+                            color: textPrimary,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -485,51 +510,54 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                           controller: _conditionController,
                           maxLines: 3,
                           minLines: 2,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13.5,
-                            color: Colors.black87,
+                            color: isDark ? Colors.white : Colors.black87,
                             height: 1.35,
                           ),
                           decoration: _editableBoxDecoration(
                             'Masukkan kondisi barang...',
+                            isDark,
                           ),
                         ),
                         const SizedBox(height: 18),
 
-                        // Catatan Perawatan Terakhir
                         Text(
                           'Catatan Perawatan Terakhir',
                           style: GoogleFonts.montserrat(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
+                            color: textPrimary,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
                             Expanded(
-                              child: _whiteInfoCard(
+                              child: _infoCard(
                                 label: 'Tanggal Perawatan Terakhir',
                                 value: lastMaintenance,
+                                isDark: isDark,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: _whiteInfoCard(
+                              child: _infoCard(
                                 label: 'Biaya Perawatan Terakhir',
                                 value: lastMaintenanceCost,
+                                isDark: isDark,
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 18),
 
-                        // Rincian Perawatan (Bisa Diedit)
                         Text(
                           'Rincian Perawatan',
                           style: GoogleFonts.montserrat(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
+                            color: textPrimary,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -537,18 +565,18 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                           controller: _maintenanceDetailController,
                           maxLines: 3,
                           minLines: 2,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13.5,
-                            color: Colors.black87,
+                            color: isDark ? Colors.white : Colors.black87,
                             height: 1.35,
                           ),
                           decoration: _editableBoxDecoration(
                             'Belum ada catatan perawatan.',
+                            isDark,
                           ),
                         ),
                         const SizedBox(height: 24),
 
-                        // Tombol Simpan Perubahan
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -592,7 +620,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     );
   }
 
-  Widget _photoPlaceholder() {
+  Widget _photoPlaceholder(bool isDark) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -606,7 +634,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
           'Foto Barang',
           style: TextStyle(
             fontSize: 12.5,
-            color: Colors.grey.shade600,
+            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
           ),
         ),
       ],

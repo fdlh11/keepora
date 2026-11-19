@@ -87,9 +87,12 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
   }
 
   Future<void> _konfirmasiHapus() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Text('Hapus Jadwal?'),
         content: const Text('Jadwal perawatan ini akan dihapus permanen.'),
         actions: [
@@ -161,39 +164,44 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF004AAD);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor =
+        isDark ? const Color(0xFF121212) : const Color(0xFFF3F4F6);
+    final textPrimary = isDark ? Colors.white : Colors.black87;
+
     final Timestamp? ts = _currentData['scheduledAt'] as Timestamp?;
     final DateTime scheduledAt = ts?.toDate() ?? DateTime.now();
     final String notes = (_currentData['notes'] ?? '').toString();
     final num estimatedCost = (_currentData['estimatedCost'] as num?) ?? 0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF3F4F6),
+        backgroundColor: bgColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
         ),
         title: Text(
           'Detail Jadwal',
           style: GoogleFonts.montserrat(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: textPrimary,
           ),
         ),
         actions: [
           IconButton(
             onPressed: _isProcessing ? null : _bukaHalamanEdit,
-            icon: const Icon(Icons.edit_outlined, color: Colors.black87),
+            icon: Icon(Icons.edit_outlined, color: textPrimary),
             tooltip: 'Edit Jadwal',
           ),
           IconButton(
             onPressed: _isProcessing ? null : _konfirmasiHapus,
-            icon: const Icon(Icons.delete_outline, color: Colors.black87),
+            icon: Icon(Icons.delete_outline, color: textPrimary),
             tooltip: 'Hapus Jadwal',
           ),
           const SizedBox(width: 4),
@@ -204,15 +212,16 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildLabel('Nama Jadwal'),
+            _buildLabel('Nama Jadwal', isDark),
             const SizedBox(height: 6),
-            _buildReadOnlyBox((_currentData['title'] ?? '-').toString()),
+            _buildReadOnlyBox((_currentData['title'] ?? '-').toString(), isDark),
 
             const SizedBox(height: 16),
 
-            _buildLabel('Nama Barang'),
+            _buildLabel('Nama Barang', isDark),
             const SizedBox(height: 6),
-            _buildReadOnlyBox((_currentData['assetName'] ?? '-').toString()),
+            _buildReadOnlyBox(
+                (_currentData['assetName'] ?? '-').toString(), isDark),
 
             const SizedBox(height: 16),
 
@@ -223,9 +232,9 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLabel('Tanggal Jadwal'),
+                      _buildLabel('Tanggal Jadwal', isDark),
                       const SizedBox(height: 6),
-                      _buildReadOnlyBox(_formatTanggal(scheduledAt)),
+                      _buildReadOnlyBox(_formatTanggal(scheduledAt), isDark),
                     ],
                   ),
                 ),
@@ -235,9 +244,9 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLabel('Jam Jadwal'),
+                      _buildLabel('Jam Jadwal', isDark),
                       const SizedBox(height: 6),
-                      _buildReadOnlyBox(_formatJam(scheduledAt)),
+                      _buildReadOnlyBox(_formatJam(scheduledAt), isDark),
                     ],
                   ),
                 ),
@@ -246,23 +255,25 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
 
             const SizedBox(height: 16),
 
-            _buildLabel('Jenis Perawatan'),
+            _buildLabel('Jenis Perawatan', isDark),
             const SizedBox(height: 6),
             _buildReadOnlyBox(
               (_currentData['maintenanceType'] ?? 'Perawatan').toString(),
+              isDark,
             ),
 
             const SizedBox(height: 16),
 
-            _buildLabel('Estimasi Biaya Perawatan'),
+            _buildLabel('Estimasi Biaya Perawatan', isDark),
             const SizedBox(height: 6),
-            _buildReadOnlyBox(_formatRupiah(estimatedCost)),
+            _buildReadOnlyBox(_formatRupiah(estimatedCost), isDark),
 
             const SizedBox(height: 16),
 
-            _buildLabel('Catatan Tambahan (Opsional)'),
+            _buildLabel('Catatan Tambahan (Opsional)', isDark),
             const SizedBox(height: 6),
-            _buildReadOnlyBox(notes.isEmpty ? '' : notes, minHeight: 90),
+            _buildReadOnlyBox(notes.isEmpty ? '' : notes, isDark,
+                minHeight: 90),
           ],
         ),
       ),
@@ -305,32 +316,34 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
     );
   }
 
-  Widget _buildLabel(String text) {
+  Widget _buildLabel(String text, bool isDark) {
     return Text(
       text,
       style: GoogleFonts.montserrat(
         fontSize: 13.5,
         fontWeight: FontWeight.bold,
-        color: Colors.black87,
+        color: isDark ? Colors.white : Colors.black87,
       ),
     );
   }
 
-  Widget _buildReadOnlyBox(String value, {double minHeight = 48}) {
+  Widget _buildReadOnlyBox(String value, bool isDark, {double minHeight = 48}) {
     return Container(
       width: double.infinity,
       constraints: BoxConstraints(minHeight: minHeight),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
+        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade400),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade400,
+        ),
       ),
       child: Text(
         value,
         style: TextStyle(
           fontSize: 14,
-          color: Colors.grey.shade700,
+          color: isDark ? Colors.white70 : Colors.grey.shade700,
         ),
       ),
     );
@@ -461,6 +474,7 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
   Future<void> _pilihTanggal() async {
     final minDate = _minScheduleDate;
     final initial = _selectedDate.isBefore(minDate) ? minDate : _selectedDate;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final picked = await showDatePicker(
       context: context,
@@ -470,7 +484,12 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: Color(0xFF004AAD)),
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: Color(0xFF60A5FA),
+                    surface: Color(0xFF1E1E1E),
+                  )
+                : const ColorScheme.light(primary: Color(0xFF004AAD)),
           ),
           child: child!,
         );
@@ -480,13 +499,19 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
   }
 
   Future<void> _pilihJam() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: Color(0xFF004AAD)),
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: Color(0xFF60A5FA),
+                    surface: Color(0xFF1E1E1E),
+                  )
+                : const ColorScheme.light(primary: Color(0xFF004AAD)),
           ),
           child: child!,
         );
@@ -590,24 +615,34 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF004AAD);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor =
+        isDark ? const Color(0xFF121212) : const Color(0xFFF3F4F6);
+    final fieldBgColor =
+        isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6);
+    final borderColor =
+        isDark ? Colors.grey.shade800 : Colors.grey.shade400;
+    final textPrimary = isDark ? Colors.white : Colors.black87;
+    final textSecondary =
+        isDark ? Colors.grey.shade400 : Colors.grey.shade600;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF3F4F6),
+        backgroundColor: bgColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
         ),
         title: Text(
           'Edit Detail Jadwal',
           style: GoogleFonts.montserrat(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: textPrimary,
           ),
         ),
       ),
@@ -617,19 +652,18 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Nama Jadwal
-              _buildLabel('Nama Jadwal'),
+              _buildLabel('Nama Jadwal', isDark),
               const SizedBox(height: 8),
               TextField(
                 controller: _namaJadwalController,
-                style: const TextStyle(fontSize: 14, color: Colors.black87),
-                decoration: _inputDecoration('Masukkan nama jadwal...'),
+                style: TextStyle(fontSize: 14, color: textPrimary),
+                decoration:
+                    _inputDecoration('Masukkan nama jadwal...', isDark),
               ),
 
               const SizedBox(height: 16),
 
-              // Nama Barang
-              _buildLabel('Nama Barang'),
+              _buildLabel('Nama Barang', isDark),
               const SizedBox(height: 8),
               StreamBuilder(
                 stream: widget.jadwalService.streamDaftarBarang(),
@@ -638,19 +672,21 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF3F4F6),
+                      color: fieldBgColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade400),
+                      border: Border.all(color: borderColor),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: docs.any((d) => d.id == _selectedAssetId)
                             ? _selectedAssetId
                             : null,
+                        dropdownColor:
+                            isDark ? const Color(0xFF1E1E1E) : Colors.white,
                         isExpanded: true,
                         icon: Icon(
                           Icons.keyboard_arrow_down_rounded,
-                          color: Colors.grey.shade600,
+                          color: textSecondary,
                         ),
                         hint: Text(
                           _selectedAssetName?.isNotEmpty == true
@@ -660,7 +696,7 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                                   : 'Pilih nama barang'),
                           style: TextStyle(
                             color: _selectedAssetName?.isNotEmpty == true
-                                ? Colors.black87
+                                ? textPrimary
                                 : Colors.grey.shade500,
                             fontSize: 13.5,
                           ),
@@ -673,9 +709,9 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                             value: doc.id,
                             child: Text(
                               namaBarang,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.black87,
+                                color: textPrimary,
                               ),
                             ),
                           );
@@ -701,7 +737,6 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
 
               const SizedBox(height: 16),
 
-              // Tanggal & Jam Jadwal
               Row(
                 children: [
                   Expanded(
@@ -709,7 +744,7 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel('Tanggal Jadwal'),
+                        _buildLabel('Tanggal Jadwal', isDark),
                         const SizedBox(height: 8),
                         InkWell(
                           onTap: _pilihTanggal,
@@ -718,8 +753,9 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                             height: 48,
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
+                              color: fieldBgColor,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade400),
+                              border: Border.all(color: borderColor),
                             ),
                             child: Row(
                               children: [
@@ -727,16 +763,16 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                                   child: Text(
                                     _formatTanggal(_selectedDate),
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
-                                      color: Colors.black87,
+                                      color: textPrimary,
                                     ),
                                   ),
                                 ),
                                 Icon(
                                   Icons.calendar_today_outlined,
                                   size: 18,
-                                  color: Colors.grey.shade600,
+                                  color: textSecondary,
                                 ),
                               ],
                             ),
@@ -751,7 +787,7 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel('Jam Jadwal'),
+                        _buildLabel('Jam Jadwal', isDark),
                         const SizedBox(height: 8),
                         InkWell(
                           onTap: _pilihJam,
@@ -760,8 +796,9 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                             height: 48,
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
+                              color: fieldBgColor,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade400),
+                              border: Border.all(color: borderColor),
                             ),
                             child: Row(
                               children: [
@@ -769,16 +806,16 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                                   child: Text(
                                     _formatJam(_selectedTime),
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
-                                      color: Colors.black87,
+                                      color: textPrimary,
                                     ),
                                   ),
                                 ),
                                 Icon(
                                   Icons.access_time_rounded,
                                   size: 18,
-                                  color: Colors.grey.shade600,
+                                  color: textSecondary,
                                 ),
                               ],
                             ),
@@ -792,32 +829,33 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
 
               const SizedBox(height: 16),
 
-              // Jenis Perawatan
-              _buildLabel('Jenis Perawatan'),
+              _buildLabel('Jenis Perawatan', isDark),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
+                  color: fieldBgColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade400),
+                  border: Border.all(color: borderColor),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _selectedJenisPerawatan,
+                    dropdownColor:
+                        isDark ? const Color(0xFF1E1E1E) : Colors.white,
                     isExpanded: true,
                     icon: Icon(
                       Icons.keyboard_arrow_down_rounded,
-                      color: Colors.grey.shade600,
+                      color: textSecondary,
                     ),
                     items: _jenisPerawatanList.map((jenis) {
                       return DropdownMenuItem<String>(
                         value: jenis,
                         child: Text(
                           jenis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Colors.black87,
+                            color: textPrimary,
                           ),
                         ),
                       );
@@ -833,23 +871,22 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
 
               const SizedBox(height: 16),
 
-              // Estimasi Biaya Perawatan
-              _buildLabel('Estimasi Biaya Perawatan'),
+              _buildLabel('Estimasi Biaya Perawatan', isDark),
               const SizedBox(height: 8),
               TextField(
                 controller: _estimasiBiayaController,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 onChanged: _onBiayaChanged,
-                style: const TextStyle(fontSize: 14, color: Colors.black87),
-                decoration: _inputDecoration('00000').copyWith(
+                style: TextStyle(fontSize: 14, color: textPrimary),
+                decoration: _inputDecoration('00000', isDark).copyWith(
                   prefixIcon: Padding(
                     padding: const EdgeInsets.only(left: 14, right: 4),
                     child: Text(
                       'Rp',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -863,19 +900,18 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
 
               const SizedBox(height: 16),
 
-              // Catatan Tambahan (Opsional)
-              _buildLabel('Catatan Tambahan (Opsional)'),
+              _buildLabel('Catatan Tambahan (Opsional)', isDark),
               const SizedBox(height: 8),
               TextField(
                 controller: _catatanController,
                 maxLines: 3,
-                style: const TextStyle(fontSize: 14, color: Colors.black87),
-                decoration: _inputDecoration('Masukkan catatan tambahan...'),
+                style: TextStyle(fontSize: 14, color: textPrimary),
+                decoration:
+                    _inputDecoration('Masukkan catatan tambahan...', isDark),
               ),
 
               const SizedBox(height: 32),
 
-              // Tombol Perbarui
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -914,25 +950,29 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
     );
   }
 
-  Widget _buildLabel(String text) {
+  Widget _buildLabel(String text, bool isDark) {
     return Text(
       text,
       style: GoogleFonts.montserrat(
         fontSize: 13.5,
         fontWeight: FontWeight.bold,
-        color: Colors.black87,
+        color: isDark ? Colors.white : Colors.black87,
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String hint) {
+  InputDecoration _inputDecoration(String hint, bool isDark) {
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13.5),
+      filled: true,
+      fillColor: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade400),
+        borderSide: BorderSide(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade400,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),

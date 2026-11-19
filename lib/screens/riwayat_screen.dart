@@ -160,12 +160,22 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     const primaryBlue = Color(0xFF004AAD);
 
+    final bgColor = theme.scaffoldBackgroundColor;
+    final cardColor = isDark ? theme.colorScheme.surface : Colors.white;
+    final textPrimary = theme.colorScheme.onSurface;
+    final textSecondary = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+    final borderColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
+    final chipBorderUnselected =
+        isDark ? Colors.grey.shade700 : Colors.grey.shade400;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF3F4F6),
+        backgroundColor: bgColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
@@ -175,7 +185,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
           style: GoogleFonts.montserrat(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: textPrimary,
           ),
         ),
       ),
@@ -249,7 +259,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: primaryBlue.withValues(alpha: 0.22),
+                        color: primaryBlue.withValues(alpha: isDark ? 0.35 : 0.22),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -333,7 +343,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                   style: GoogleFonts.montserrat(
                     fontSize: 14.5,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                    color: textPrimary,
                   ),
                 ),
               ),
@@ -356,16 +366,16 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                             fontWeight: isSelected
                                 ? FontWeight.w600
                                 : FontWeight.w500,
-                            color: isSelected ? Colors.white : Colors.black87,
+                            color: isSelected ? Colors.white : textPrimary,
                           ),
                         ),
                         selected: isSelected,
                         selectedColor: primaryBlue,
-                        backgroundColor: const Color(0xFFF3F4F6),
+                        backgroundColor: cardColor,
                         side: BorderSide(
                           color: isSelected
                               ? primaryBlue
-                              : Colors.grey.shade400,
+                              : chipBorderUnselected,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
@@ -393,7 +403,9 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                               Icon(
                                 Icons.history_rounded,
                                 size: 54,
-                                color: Colors.grey.shade400,
+                                color: isDark
+                                    ? Colors.grey.shade600
+                                    : Colors.grey.shade400,
                               ),
                               const SizedBox(height: 12),
                               Text(
@@ -401,7 +413,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                 style: GoogleFonts.montserrat(
                                   fontSize: 15.5,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                                  color: textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -410,7 +422,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Colors.grey.shade600,
+                                  color: textSecondary,
                                   height: 1.4,
                                 ),
                               ),
@@ -453,17 +465,18 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                           return Container(
                             padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: cardColor,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: Colors.grey.shade300,
+                                color: borderColor,
                               ),
                               boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.03),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
+                                if (!isDark)
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.03),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
                               ],
                             ),
                             child: Column(
@@ -500,12 +513,12 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                                 data,
                                               ),
                                       borderRadius: BorderRadius.circular(8),
-                                      child: const Padding(
-                                        padding: EdgeInsets.all(4),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(4),
                                         child: Icon(
                                           Icons.edit_outlined,
                                           size: 24,
-                                          color: Colors.black87,
+                                          color: textPrimary,
                                         ),
                                       ),
                                     ),
@@ -519,7 +532,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                   style: GoogleFonts.montserrat(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.black,
+                                    color: textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -529,7 +542,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 12.5,
-                                    color: Colors.grey.shade600,
+                                    color: textSecondary,
                                   ),
                                 ),
                                 const SizedBox(height: 12),
@@ -543,26 +556,32 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFDBEAFE),
+                                        color: isDark
+                                            ? primaryBlue.withValues(alpha: 0.25)
+                                            : const Color(0xFFDBEAFE),
                                         borderRadius: BorderRadius.circular(20),
                                         border: Border.all(
-                                          color: const Color(0xFF93C5FD),
+                                          color: isDark
+                                              ? const Color(0xFF60A5FA)
+                                              : const Color(0xFF93C5FD),
                                         ),
                                       ),
                                       child: Text(
                                         categoryLabel,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 11.5,
                                           fontWeight: FontWeight.w600,
-                                          color: primaryBlue,
+                                          color: isDark
+                                              ? const Color(0xFF93C5FD)
+                                              : primaryBlue,
                                         ),
                                       ),
                                     ),
                                     RichText(
                                       text: TextSpan(
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 12.5,
-                                          color: Colors.black87,
+                                          color: textPrimary,
                                         ),
                                         children: [
                                           const TextSpan(text: 'Biaya '),
@@ -715,6 +734,7 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
   }
 
   Future<void> _pilihTanggal() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -723,7 +743,12 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: Color(0xFF004AAD)),
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: Color(0xFF004AAD),
+                    onPrimary: Colors.white,
+                  )
+                : const ColorScheme.light(primary: Color(0xFF004AAD)),
           ),
           child: child!,
         );
@@ -733,13 +758,19 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
   }
 
   Future<void> _pilihJam() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: Color(0xFF004AAD)),
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: Color(0xFF004AAD),
+                    onPrimary: Colors.white,
+                  )
+                : const ColorScheme.light(primary: Color(0xFF004AAD)),
           ),
           child: child!,
         );
@@ -807,18 +838,27 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     const primaryBlue = Color(0xFF004AAD);
     final assetName = (widget.data['assetName'] ?? '-').toString();
 
+    final bgColor = theme.scaffoldBackgroundColor;
+    final fieldFillColor = isDark ? theme.colorScheme.surface : Colors.white;
+    final textPrimary = theme.colorScheme.onSurface;
+    final textFieldColor =
+        isDark ? Colors.grey.shade200 : Colors.grey.shade800;
+    final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade400;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF3F4F6),
+        backgroundColor: bgColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -826,7 +866,7 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
           style: GoogleFonts.montserrat(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: textPrimary,
           ),
         ),
       ),
@@ -837,54 +877,60 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Nama Jadwal
-              _buildLabel('Nama Jadwal'),
+              _buildLabel('Nama Jadwal', textPrimary),
               const SizedBox(height: 8),
               TextField(
                 controller: _namaJadwalController,
-                style: TextStyle(fontSize: 13.5, color: Colors.grey.shade700),
-                decoration: _inputDecoration('Masukkan nama jadwal...'),
+                style: TextStyle(fontSize: 13.5, color: textFieldColor),
+                decoration: _inputDecoration(
+                  'Masukkan nama jadwal...',
+                  fillColor: fieldFillColor,
+                  borderColor: borderColor,
+                ),
               ),
               const SizedBox(height: 16),
 
               // Nama Barang
-              _buildLabel('Nama Barang'),
+              _buildLabel('Nama Barang', textPrimary),
               const SizedBox(height: 8),
               Container(
                 width: double.infinity,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
+                  color: fieldFillColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade400),
+                  border: Border.all(color: borderColor),
                 ),
                 child: Text(
                   assetName,
-                  style: TextStyle(fontSize: 13.5, color: Colors.grey.shade700),
+                  style: TextStyle(fontSize: 13.5, color: textFieldColor),
                 ),
               ),
               const SizedBox(height: 16),
 
               // Jenis Perawatan
-              _buildLabel('Jenis Perawatan'),
+              _buildLabel('Jenis Perawatan', textPrimary),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
+                  color: fieldFillColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade400),
+                  border: Border.all(color: borderColor),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _selectedJenisPerawatan,
                     isExpanded: true,
+                    dropdownColor: fieldFillColor,
                     icon: Icon(
                       Icons.keyboard_arrow_down_rounded,
-                      color: Colors.grey.shade600,
+                      color: isDark
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade600,
                     ),
-                    style:
-                        TextStyle(fontSize: 13.5, color: Colors.grey.shade700),
+                    style: TextStyle(fontSize: 13.5, color: textFieldColor),
                     items: _jenisPerawatanOptions.map((jenis) {
                       return DropdownMenuItem<String>(
                         value: jenis,
@@ -909,7 +955,7 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel('Tanggal Perawatan'),
+                        _buildLabel('Tanggal Perawatan', textPrimary),
                         const SizedBox(height: 8),
                         InkWell(
                           onTap: _pilihTanggal,
@@ -918,9 +964,9 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                             height: 48,
                             padding: const EdgeInsets.symmetric(horizontal: 14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF3F4F6),
+                              color: fieldFillColor,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade400),
+                              border: Border.all(color: borderColor),
                             ),
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -928,7 +974,7 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 13.5,
-                                color: Colors.grey.shade700,
+                                color: textFieldColor,
                               ),
                             ),
                           ),
@@ -942,7 +988,7 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel('Jam Perawatan'),
+                        _buildLabel('Jam Perawatan', textPrimary),
                         const SizedBox(height: 8),
                         InkWell(
                           onTap: _pilihJam,
@@ -951,9 +997,9 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                             height: 48,
                             padding: const EdgeInsets.symmetric(horizontal: 14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF3F4F6),
+                              color: fieldFillColor,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade400),
+                              border: Border.all(color: borderColor),
                             ),
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -961,7 +1007,7 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 13.5,
-                                color: Colors.grey.shade700,
+                                color: textFieldColor,
                               ),
                             ),
                           ),
@@ -974,7 +1020,7 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
               const SizedBox(height: 16),
 
               // Biaya Perawatan
-              _buildLabel('Biaya Perawatan'),
+              _buildLabel('Biaya Perawatan', textPrimary),
               const SizedBox(height: 8),
               TextField(
                 controller: _biayaController,
@@ -983,15 +1029,19 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                   FilteringTextInputFormatter.digitsOnly,
                   _RibuanInputFormatter(),
                 ],
-                style: TextStyle(fontSize: 13.5, color: Colors.grey.shade700),
-                decoration: _inputDecoration('0').copyWith(
+                style: TextStyle(fontSize: 13.5, color: textFieldColor),
+                decoration: _inputDecoration(
+                  '0',
+                  fillColor: fieldFillColor,
+                  borderColor: borderColor,
+                ).copyWith(
                   prefixIcon: Padding(
                     padding: const EdgeInsets.only(left: 14, right: 4),
                     child: Text(
                       'Rp',
                       style: TextStyle(
                         fontSize: 13.5,
-                        color: Colors.grey.shade700,
+                        color: textFieldColor,
                       ),
                     ),
                   ),
@@ -1004,13 +1054,17 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
               const SizedBox(height: 16),
 
               // Catatan Tambahan (Opsional)
-              _buildLabel('Catatan Tambahan (Opsional)'),
+              _buildLabel('Catatan Tambahan (Opsional)', textPrimary),
               const SizedBox(height: 8),
               TextField(
                 controller: _catatanController,
                 maxLines: 3,
-                style: TextStyle(fontSize: 13.5, color: Colors.grey.shade700),
-                decoration: _inputDecoration('Masukkan catatan tambahan...'),
+                style: TextStyle(fontSize: 13.5, color: textFieldColor),
+                decoration: _inputDecoration(
+                  'Masukkan catatan tambahan...',
+                  fillColor: fieldFillColor,
+                  borderColor: borderColor,
+                ),
               ),
               const SizedBox(height: 44),
 
@@ -1053,27 +1107,31 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
     );
   }
 
-  Widget _buildLabel(String text) {
+  Widget _buildLabel(String text, Color color) {
     return Text(
       text,
       style: GoogleFonts.montserrat(
         fontSize: 13.5,
         fontWeight: FontWeight.bold,
-        color: Colors.black87,
+        color: color,
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String hint) {
+  InputDecoration _inputDecoration(
+    String hint, {
+    required Color fillColor,
+    required Color borderColor,
+  }) {
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13.5),
       filled: true,
-      fillColor: const Color(0xFFF3F4F6),
+      fillColor: fillColor,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade400),
+        borderSide: BorderSide(color: borderColor),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),

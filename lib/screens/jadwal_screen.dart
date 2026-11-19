@@ -98,7 +98,6 @@ class _JadwalScreenState extends State<JadwalScreen> {
   }
 
   List<DateTime> _getTwoWeekDates() {
-    // Mulai dari Senin pada minggu yang berisi tanggal terpilih (atau awal bulan fokus)
     final anchor = (_selectedDate.year == _focusedMonth.year &&
             _selectedDate.month == _focusedMonth.month)
         ? _selectedDate
@@ -123,14 +122,25 @@ class _JadwalScreenState extends State<JadwalScreen> {
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF004AAD);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor =
+        isDark ? const Color(0xFF121212) : const Color(0xFFF3F4F6);
+    final surfaceColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final borderColor =
+        isDark ? Colors.grey.shade800 : Colors.grey.shade200;
+    final textPrimary = isDark ? Colors.white : Colors.black87;
+    final textSecondary =
+        isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+    final accentBlue = isDark ? const Color(0xFF60A5FA) : primaryBlue;
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final calendarDates = _getTwoWeekDates();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF3F4F6),
+        backgroundColor: bgColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
@@ -140,7 +150,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
           style: GoogleFonts.montserrat(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: textPrimary,
           ),
         ),
       ),
@@ -190,17 +200,17 @@ class _JadwalScreenState extends State<JadwalScreen> {
 
           return Column(
             children: [
-              // Card Kalender 2 Minggu
               Container(
                 margin: const EdgeInsets.fromLTRB(16, 4, 16, 14),
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: surfaceColor,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: borderColor),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
+                      color:
+                          Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
                       blurRadius: 10,
                       offset: const Offset(0, 3),
                     ),
@@ -208,19 +218,18 @@ class _JadwalScreenState extends State<JadwalScreen> {
                 ),
                 child: Column(
                   children: [
-                    // Header Bulan
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         InkWell(
                           onTap: () => _gantiBulan(-1),
                           borderRadius: BorderRadius.circular(8),
-                          child: const Padding(
-                            padding: EdgeInsets.all(4),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
                             child: Icon(
                               Icons.chevron_left_rounded,
                               size: 22,
-                              color: Colors.black87,
+                              color: textPrimary,
                             ),
                           ),
                         ),
@@ -229,18 +238,18 @@ class _JadwalScreenState extends State<JadwalScreen> {
                           style: GoogleFonts.montserrat(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: textPrimary,
                           ),
                         ),
                         InkWell(
                           onTap: () => _gantiBulan(1),
                           borderRadius: BorderRadius.circular(8),
-                          child: const Padding(
-                            padding: EdgeInsets.all(4),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
                             child: Icon(
                               Icons.chevron_right_rounded,
                               size: 22,
-                              color: Colors.black87,
+                              color: textPrimary,
                             ),
                           ),
                         ),
@@ -248,7 +257,6 @@ class _JadwalScreenState extends State<JadwalScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Label Hari Senin - Minggu
                     Row(
                       children: _namaHari
                           .map(
@@ -259,7 +267,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w500,
-                                    color: Colors.grey.shade600,
+                                    color: textSecondary,
                                   ),
                                 ),
                               ),
@@ -269,7 +277,6 @@ class _JadwalScreenState extends State<JadwalScreen> {
                     ),
                     const SizedBox(height: 8),
 
-                    // Baris Tanggal Minggu 1 & 2
                     for (int row = 0; row < 2; row++) ...[
                       Row(
                         children: List.generate(7, (col) {
@@ -301,12 +308,14 @@ class _JadwalScreenState extends State<JadwalScreen> {
                                       : Colors.transparent,
                                   border: isToday && !hasSchedule
                                       ? Border.all(
-                                          color: primaryBlue,
+                                          color: accentBlue,
                                           width: 1.4,
                                         )
                                       : (isSelected && !hasSchedule
                                           ? Border.all(
-                                              color: Colors.grey.shade400,
+                                              color: isDark
+                                                  ? Colors.grey.shade600
+                                                  : Colors.grey.shade400,
                                               width: 1.2,
                                             )
                                           : null),
@@ -322,8 +331,10 @@ class _JadwalScreenState extends State<JadwalScreen> {
                                     color: hasSchedule
                                         ? Colors.white
                                         : (isCurrentMonth
-                                            ? Colors.black87
-                                            : Colors.grey.shade400),
+                                            ? textPrimary
+                                            : (isDark
+                                                ? Colors.grey.shade700
+                                                : Colors.grey.shade400)),
                                   ),
                                 ),
                               ),
@@ -334,10 +345,9 @@ class _JadwalScreenState extends State<JadwalScreen> {
                     ],
 
                     const SizedBox(height: 8),
-                    Divider(height: 1, color: Colors.grey.shade200),
+                    Divider(height: 1, color: borderColor),
                     const SizedBox(height: 8),
 
-                    // Footer Info Kalender
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -345,7 +355,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
                           'Hari ini: ${today.day} ${_bulanIndo[today.month]}',
                           style: TextStyle(
                             fontSize: 11.5,
-                            color: Colors.grey.shade600,
+                            color: textSecondary,
                           ),
                         ),
                         Row(
@@ -353,18 +363,18 @@ class _JadwalScreenState extends State<JadwalScreen> {
                             Container(
                               width: 6,
                               height: 6,
-                              decoration: const BoxDecoration(
-                                color: primaryBlue,
+                              decoration: BoxDecoration(
+                                color: accentBlue,
                                 shape: BoxShape.circle,
                               ),
                             ),
                             const SizedBox(width: 5),
                             Text(
                               '$jumlahJadwalBulanIni jadwal bulan ini',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w600,
-                                color: primaryBlue,
+                                color: accentBlue,
                               ),
                             ),
                           ],
@@ -375,7 +385,6 @@ class _JadwalScreenState extends State<JadwalScreen> {
                 ),
               ),
 
-              // Header Section: Jadwal Berikutnya + Tombol + Jadwal
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: Row(
@@ -386,7 +395,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
                       style: GoogleFonts.montserrat(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: textPrimary,
                       ),
                     ),
                     ElevatedButton.icon(
@@ -425,7 +434,6 @@ class _JadwalScreenState extends State<JadwalScreen> {
                 ),
               ),
 
-              // Daftar Card Jadwal
               Expanded(
                 child: docs.isEmpty
                     ? Center(
@@ -437,7 +445,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
                               Icon(
                                 Icons.event_note_outlined,
                                 size: 56,
-                                color: Colors.grey.shade400,
+                                color: Colors.grey.shade500,
                               ),
                               const SizedBox(height: 10),
                               Text(
@@ -445,7 +453,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
                                 style: GoogleFonts.montserrat(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                                  color: textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -454,7 +462,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 12.5,
-                                  color: Colors.grey.shade600,
+                                  color: textSecondary,
                                 ),
                               ),
                               const SizedBox(height: 60),
@@ -493,14 +501,13 @@ class _JadwalScreenState extends State<JadwalScreen> {
                             child: Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: surfaceColor,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Colors.grey.shade200,
-                                ),
+                                border: Border.all(color: borderColor),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.03),
+                                    color: Colors.black.withValues(
+                                        alpha: isDark ? 0.2 : 0.03),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
@@ -509,7 +516,6 @@ class _JadwalScreenState extends State<JadwalScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Baris Badge Tanggal & Countdown/Jam
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
@@ -540,8 +546,12 @@ class _JadwalScreenState extends State<JadwalScreen> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: isOverdue
-                                              ? const Color(0xFFFEE2E2)
-                                              : const Color(0xFFFFEDD5),
+                                              ? (isDark
+                                                  ? const Color(0xFF450A0A)
+                                                  : const Color(0xFFFEE2E2))
+                                              : (isDark
+                                                  ? const Color(0xFF431407)
+                                                  : const Color(0xFFFFEDD5)),
                                           borderRadius:
                                               BorderRadius.circular(20),
                                         ),
@@ -551,8 +561,12 @@ class _JadwalScreenState extends State<JadwalScreen> {
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
                                             color: isOverdue
-                                                ? const Color(0xFFDC2626)
-                                                : const Color(0xFFEA580C),
+                                                ? (isDark
+                                                    ? const Color(0xFFFCA5A5)
+                                                    : const Color(0xFFDC2626))
+                                                : (isDark
+                                                    ? const Color(0xFFFDBA74)
+                                                    : const Color(0xFFEA580C)),
                                           ),
                                         ),
                                       ),
@@ -560,7 +574,6 @@ class _JadwalScreenState extends State<JadwalScreen> {
                                   ),
                                   const SizedBox(height: 10),
 
-                                  // Nama Jadwal
                                   Text(
                                     (data['title'] ?? '-').toString(),
                                     maxLines: 1,
@@ -568,40 +581,40 @@ class _JadwalScreenState extends State<JadwalScreen> {
                                     style: GoogleFonts.montserrat(
                                       fontSize: 15.5,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
+                                      color: textPrimary,
                                     ),
                                   ),
                                   const SizedBox(height: 3),
 
-                                  // Nama Barang
                                   Text(
                                     (data['assetName'] ?? '-').toString(),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: Colors.grey.shade600,
+                                      color: textSecondary,
                                     ),
                                   ),
                                   const SizedBox(height: 10),
 
-                                  // Badge Jenis Perawatan
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 12,
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFDBEAFE),
+                                      color: isDark
+                                          ? const Color(0xFF172554)
+                                          : const Color(0xFFDBEAFE),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
                                       (data['maintenanceType'] ?? 'Perawatan')
                                           .toString(),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 11.5,
                                         fontWeight: FontWeight.w600,
-                                        color: primaryBlue,
+                                        color: accentBlue,
                                       ),
                                     ),
                                   ),

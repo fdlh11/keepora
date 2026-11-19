@@ -39,11 +39,22 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF004AAD);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor =
+        isDark ? const Color(0xFF121212) : const Color(0xFFF3F4F6);
+    final surfaceColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final borderColor =
+        isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0);
+    final textPrimary = isDark ? Colors.white : Colors.black87;
+    final textSecondary =
+        isDark ? Colors.grey.shade400 : Colors.grey.shade700;
+    final textMuted = isDark ? Colors.grey.shade500 : Colors.grey.shade500;
+    final accentBlue = isDark ? const Color(0xFF60A5FA) : primaryBlue;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF3F4F6),
+        backgroundColor: bgColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
@@ -52,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
           style: GoogleFonts.montserrat(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: textPrimary,
           ),
         ),
       ),
@@ -60,27 +71,27 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Column(
             children: [
-              // Kolom Pencarian
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
                 child: TextField(
                   controller: _searchController,
                   onChanged: (val) =>
                       setState(() => _searchQuery = val.toLowerCase().trim()),
-                  style: const TextStyle(fontSize: 13.5),
+                  style: TextStyle(fontSize: 13.5, color: textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Cari nama barang...',
-                    hintStyle: TextStyle(
-                      fontSize: 13.5,
-                      color: Colors.grey.shade500,
-                    ),
+                    hintStyle: TextStyle(fontSize: 13.5, color: textMuted),
                     prefixIcon: Icon(
                       Icons.search_rounded,
-                      color: Colors.grey.shade600,
+                      color: textSecondary,
                     ),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 18),
+                            icon: Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: textSecondary,
+                            ),
                             onPressed: () {
                               _searchController.clear();
                               setState(() => _searchQuery = '');
@@ -88,15 +99,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           )
                         : null,
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: surfaceColor,
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      borderSide: BorderSide(color: borderColor),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      borderSide: BorderSide(color: borderColor),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -109,7 +120,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // Filter Kategori
               SizedBox(
                 height: 38,
                 child: ListView.separated(
@@ -128,15 +138,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontSize: 12.5,
                           fontWeight:
                               isSelected ? FontWeight.w600 : FontWeight.normal,
-                          color: isSelected ? Colors.white : Colors.black87,
+                          color: isSelected ? Colors.white : textPrimary,
                         ),
                       ),
                       selected: isSelected,
                       selectedColor: primaryBlue,
-                      backgroundColor: Colors.white,
+                      backgroundColor: surfaceColor,
                       side: BorderSide(
-                        color:
-                            isSelected ? primaryBlue : const Color(0xFFE2E8F0),
+                        color: isSelected ? primaryBlue : borderColor,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
@@ -151,7 +160,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 10),
 
-              // Daftar Barang Real-Time dari Firestore
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
                   stream: _assetService.getAssetsStream(),
@@ -200,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Icon(
                                 Icons.inventory_2_outlined,
                                 size: 52,
-                                color: Colors.grey.shade400,
+                                color: textMuted,
                               ),
                               const SizedBox(height: 12),
                               Text(
@@ -210,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 style: GoogleFonts.montserrat(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                                  color: textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -221,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Colors.grey.shade600,
+                                  color: textSecondary,
                                   height: 1.4,
                                 ),
                               ),
@@ -263,10 +271,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: surfaceColor,
                               borderRadius: BorderRadius.circular(14),
-                              border:
-                                  Border.all(color: const Color(0xFFE2E8F0)),
+                              border: Border.all(color: borderColor),
                             ),
                             child: Row(
                               children: [
@@ -274,12 +281,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                   width: 46,
                                   height: 46,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFDBEAFE),
+                                    color: isDark
+                                        ? const Color(0xFF1E3A5F)
+                                        : const Color(0xFFDBEAFE),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.devices_other_rounded,
-                                    color: primaryBlue,
+                                    color: accentBlue,
                                     size: 24,
                                   ),
                                 ),
@@ -297,7 +306,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                               style: GoogleFonts.montserrat(
                                                 fontSize: 14.5,
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.black87,
+                                                color: textPrimary,
                                               ),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
@@ -310,19 +319,23 @@ class _HomeScreenState extends State<HomeScreen> {
                                               vertical: 3,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFEFF6FF),
+                                              color: isDark
+                                                  ? const Color(0xFF172554)
+                                                  : const Color(0xFFEFF6FF),
                                               borderRadius:
                                                   BorderRadius.circular(20),
                                               border: Border.all(
-                                                color: const Color(0xFFBFDBFE),
+                                                color: isDark
+                                                    ? const Color(0xFF1D4ED8)
+                                                    : const Color(0xFFBFDBFE),
                                               ),
                                             ),
                                             child: Text(
                                               category,
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.w600,
-                                                color: primaryBlue,
+                                                color: accentBlue,
                                               ),
                                             ),
                                           ),
@@ -333,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         '$price • $condition',
                                         style: TextStyle(
                                           fontSize: 12.5,
-                                          color: Colors.grey.shade700,
+                                          color: textSecondary,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -343,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         'Perawatan terakhir: $lastMaint',
                                         style: TextStyle(
                                           fontSize: 11.5,
-                                          color: Colors.grey.shade500,
+                                          color: textMuted,
                                         ),
                                       ),
                                     ],
@@ -352,7 +365,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const SizedBox(width: 6),
                                 Icon(
                                   Icons.chevron_right_rounded,
-                                  color: Colors.grey.shade500,
+                                  color: textMuted,
                                 ),
                               ],
                             ),
@@ -366,7 +379,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
 
-          // Tombol tambah Barang di atas navbar
           Positioned(
             right: 20,
             bottom: 98,

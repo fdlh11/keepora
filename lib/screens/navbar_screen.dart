@@ -26,15 +26,23 @@ class _NavbarScreenState extends State<NavbarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor =
+        isDark ? const Color(0xFF121212) : const Color(0xFFF3F4F6);
+    final navBgColor =
+        isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8FAFC);
+    final navBorderColor =
+        isDark ? Colors.grey.shade800 : const Color(0xFFC7D2FE);
+
     final List<Widget> pages = const [
-      HomeScreen(),     // index 0: Beranda
-      JadwalScreen(),   // index 1: Jadwal
-      RiwayatScreen(),  // index 2: Riwayat
-      AkunScreen(),     // index 3: Akun
+      HomeScreen(),
+      JadwalScreen(),
+      RiwayatScreen(),
+      AkunScreen(),
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: bgColor,
       extendBody: true,
       body: IndexedStack(
         index: _currentIndex,
@@ -45,15 +53,15 @@ class _NavbarScreenState extends State<NavbarScreen> {
         child: Container(
           height: 68,
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
+            color: navBgColor,
             borderRadius: BorderRadius.circular(36),
             border: Border.all(
-              color: const Color(0xFFC7D2FE),
+              color: navBorderColor,
               width: 1.4,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.05),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -65,21 +73,25 @@ class _NavbarScreenState extends State<NavbarScreen> {
                 index: 0,
                 icon: Icons.home_outlined,
                 label: 'Beranda',
+                isDark: isDark,
               ),
               _buildNavItem(
                 index: 1,
                 icon: Icons.calendar_today_outlined,
                 label: 'Jadwal',
+                isDark: isDark,
               ),
               _buildNavItem(
                 index: 2,
                 icon: Icons.access_time_rounded,
                 label: 'Riwayat',
+                isDark: isDark,
               ),
               _buildNavItem(
                 index: 3,
                 icon: Icons.person_outline_rounded,
                 label: 'Akun',
+                isDark: isDark,
               ),
             ],
           ),
@@ -92,9 +104,12 @@ class _NavbarScreenState extends State<NavbarScreen> {
     required int index,
     required IconData icon,
     required String label,
+    required bool isDark,
   }) {
-    const activeColor = Color(0xFF004AAD);
-    const inactiveColor = Color(0xFF737373);
+    final activeColor =
+        isDark ? const Color(0xFF60A5FA) : const Color(0xFF004AAD);
+    final inactiveColor =
+        isDark ? Colors.grey.shade400 : const Color(0xFF737373);
     final bool isSelected = _currentIndex == index;
 
     return Expanded(

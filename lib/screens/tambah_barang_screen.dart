@@ -101,9 +101,19 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
   }
 
   void _showImageSourceSheet() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final sheetBg = isDark ? theme.colorScheme.surface : Colors.white;
+    final textPrimary = theme.colorScheme.onSurface;
+    final iconBg = isDark
+        ? const Color(0xFF004AAD).withValues(alpha: 0.25)
+        : const Color(0xFFDBEAFE);
+    final iconColor =
+        isDark ? const Color(0xFF93C5FD) : const Color(0xFF004AAD);
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -119,7 +129,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
@@ -128,7 +138,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                   style: GoogleFonts.montserrat(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: textPrimary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -136,21 +146,30 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFDBEAFE),
+                      color: iconBg,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.camera_alt_outlined,
-                      color: Color(0xFF004AAD),
+                      color: iconColor,
                     ),
                   ),
-                  title: const Text(
+                  title: Text(
                     'Ambil Foto dari Kamera',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: textPrimary,
+                    ),
                   ),
-                  subtitle: const Text(
+                  subtitle: Text(
                     'Gunakan kamera perangkat untuk memotret barang',
-                    style: TextStyle(fontSize: 12),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade600,
+                    ),
                   ),
                   onTap: () {
                     Navigator.pop(sheetContext);
@@ -162,21 +181,30 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFDBEAFE),
+                      color: iconBg,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.photo_library_outlined,
-                      color: Color(0xFF004AAD),
+                      color: iconColor,
                     ),
                   ),
-                  title: const Text(
+                  title: Text(
                     'Pilih dari Galeri',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: textPrimary,
+                    ),
                   ),
-                  subtitle: const Text(
+                  subtitle: Text(
                     'Pilih foto barang yang sudah tersimpan di HP',
-                    style: TextStyle(fontSize: 12),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade600,
+                    ),
                   ),
                   onTap: () {
                     Navigator.pop(sheetContext);
@@ -189,12 +217,14 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     leading: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.red.shade50,
+                        color: isDark
+                            ? Colors.red.withValues(alpha: 0.2)
+                            : Colors.red.shade50,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         Icons.delete_outline,
-                        color: Colors.red.shade600,
+                        color: Colors.red.shade400,
                       ),
                     ),
                     title: Text(
@@ -202,7 +232,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
-                        color: Colors.red.shade600,
+                        color: Colors.red.shade400,
                       ),
                     ),
                     onTap: () {
@@ -225,12 +255,17 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
       return;
     }
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark ? theme.colorScheme.surface : Colors.white;
+    final textPrimary = theme.colorScheme.onSurface;
+
     final bool? shouldLeave = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.white,
+        backgroundColor: dialogBg,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           child: Column(
@@ -242,16 +277,16 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                 style: GoogleFonts.montserrat(
                   fontSize: 19,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Anda sedang mengisi barang baru. Data yang sudah diisi akan hilang jika Anda keluar.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.black87,
+                  color: isDark ? Colors.grey.shade300 : Colors.black87,
                   height: 1.4,
                 ),
               ),
@@ -284,7 +319,9 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(dialogContext, true),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF004AAD),
+                        foregroundColor: isDark
+                            ? const Color(0xFF93C5FD)
+                            : const Color(0xFF004AAD),
                         side: const BorderSide(
                           color: Color(0xFF64A1F4),
                           width: 1.2,
@@ -338,6 +375,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
     final initial = isSecondHand
         ? (_secondHandPurchaseDate ?? now)
         : (_purchaseDate ?? now);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final picked = await showDatePicker(
       context: context,
@@ -347,11 +385,16 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF004AAD),
-              onPrimary: Colors.white,
-              onSurface: Colors.black87,
-            ),
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: Color(0xFF004AAD),
+                    onPrimary: Colors.white,
+                  )
+                : const ColorScheme.light(
+                    primary: Color(0xFF004AAD),
+                    onPrimary: Colors.white,
+                    onSurface: Colors.black87,
+                  ),
           ),
           child: child!,
         );
@@ -451,21 +494,26 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
     }
   }
 
-  InputDecoration _inputDecoration(String hint, {String? prefixText}) {
+  InputDecoration _inputDecoration(
+    String hint, {
+    String? prefixText,
+    required Color fillColor,
+    required Color borderColor,
+  }) {
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
       prefixText: prefixText,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: fillColor,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFD6D6D6)),
+        borderSide: BorderSide(color: borderColor),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFD6D6D6)),
+        borderSide: BorderSide(color: borderColor),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -484,7 +532,20 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     const primaryBlue = Color(0xFF004AAD);
+    final accentBlue = isDark ? const Color(0xFF60A5FA) : primaryBlue;
+
+    final bgColor = theme.scaffoldBackgroundColor;
+    final fieldFillColor = isDark ? theme.colorScheme.surface : Colors.white;
+    final disabledFillColor =
+        isDark ? Colors.grey.shade900 : const Color(0xFFE5E7EB);
+    final borderColor =
+        isDark ? Colors.grey.shade700 : const Color(0xFFD6D6D6);
+    final textPrimary = theme.colorScheme.onSurface;
+    final textSecondary = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+
     final bool isRegularDisabled = _secondHandPurchaseDate != null;
     final bool isSecondHandDisabled = _purchaseDate != null;
 
@@ -495,14 +556,14 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
         await _handleBackPress();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF3F4F6),
+        backgroundColor: bgColor,
         appBar: AppBar(
-          backgroundColor: const Color(0xFFF3F4F6),
+          backgroundColor: bgColor,
           elevation: 0,
           scrolledUnderElevation: 0,
           centerTitle: true,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: Icon(Icons.arrow_back, color: textPrimary),
             onPressed: _isSaving ? null : _handleBackPress,
           ),
           title: Text(
@@ -510,7 +571,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
             style: GoogleFonts.montserrat(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: textPrimary,
             ),
           ),
         ),
@@ -533,10 +594,10 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                           ? EdgeInsets.zero
                           : const EdgeInsets.symmetric(vertical: 22),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: fieldFillColor,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: const Color(0xFFD6D6D6),
+                          color: borderColor,
                           width: 1,
                         ),
                       ),
@@ -588,10 +649,10 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                             )
                           : Column(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.photo_camera_outlined,
                                   size: 36,
-                                  color: primaryBlue,
+                                  color: accentBlue,
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
@@ -599,7 +660,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                                   style: GoogleFonts.montserrat(
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.bold,
-                                    color: primaryBlue,
+                                    color: accentBlue,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -607,7 +668,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                                   'Ambil Foto atau Pilih dari Galeri',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey.shade600,
+                                    color: textSecondary,
                                   ),
                                 ),
                               ],
@@ -622,17 +683,21 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     style: GoogleFonts.montserrat(
                       fontSize: 13.5,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _nameController,
-                    style: const TextStyle(fontSize: 13.5),
+                    style: TextStyle(fontSize: 13.5, color: textPrimary),
                     validator: (val) => (val == null || val.trim().isEmpty)
                         ? 'Nama barang wajib diisi'
                         : null,
-                    decoration: _inputDecoration('Masukkan nama barang...'),
+                    decoration: _inputDecoration(
+                      'Masukkan nama barang...',
+                      fillColor: fieldFillColor,
+                      borderColor: borderColor,
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -642,7 +707,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     style: GoogleFonts.montserrat(
                       fontSize: 13.5,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -651,11 +716,15 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     isExpanded: true,
                     icon: Icon(
                       Icons.keyboard_arrow_down_rounded,
-                      color: Colors.grey.shade600,
+                      color: textSecondary,
                     ),
-                    dropdownColor: Colors.white,
-                    style: const TextStyle(fontSize: 13.5, color: Colors.black87),
-                    decoration: _inputDecoration('Pilih Kategori Barang...'),
+                    dropdownColor: fieldFillColor,
+                    style: TextStyle(fontSize: 13.5, color: textPrimary),
+                    decoration: _inputDecoration(
+                      'Pilih Kategori Barang...',
+                      fillColor: fieldFillColor,
+                      borderColor: borderColor,
+                    ),
                     items: _categories
                         .map((cat) => DropdownMenuItem(
                               value: cat,
@@ -681,8 +750,8 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.bold,
                                 color: isRegularDisabled
-                                    ? Colors.grey.shade400
-                                    : Colors.black87,
+                                    ? Colors.grey.shade500
+                                    : textPrimary,
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -698,11 +767,11 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: isRegularDisabled
-                                      ? const Color(0xFFE5E7EB)
-                                      : Colors.white,
+                                      ? disabledFillColor
+                                      : fieldFillColor,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: const Color(0xFFD6D6D6),
+                                    color: borderColor,
                                   ),
                                 ),
                                 child: Row(
@@ -720,7 +789,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                                           color: isRegularDisabled ||
                                                   _purchaseDate == null
                                               ? Colors.grey.shade500
-                                              : Colors.black87,
+                                              : textPrimary,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -745,8 +814,8 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                                         Icons.calendar_today_outlined,
                                         size: 17,
                                         color: isRegularDisabled
-                                            ? Colors.grey.shade400
-                                            : Colors.grey.shade600,
+                                            ? Colors.grey.shade600
+                                            : textSecondary,
                                       ),
                                     ],
                                   ],
@@ -767,14 +836,15 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                               style: GoogleFonts.montserrat(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                color: textPrimary,
                               ),
                             ),
                             const SizedBox(height: 6),
                             TextFormField(
                               controller: _priceController,
                               keyboardType: TextInputType.number,
-                              style: const TextStyle(fontSize: 13),
+                              style:
+                                  TextStyle(fontSize: 13, color: textPrimary),
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly,
                                 _RibuanFormatter(),
@@ -786,6 +856,8 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                               decoration: _inputDecoration(
                                 'Harga beli...',
                                 prefixText: 'Rp ',
+                                fillColor: fieldFillColor,
+                                borderColor: borderColor,
                               ),
                             ),
                           ],
@@ -801,17 +873,21 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     style: GoogleFonts.montserrat(
                       fontSize: 13.5,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _conditionController,
-                    style: const TextStyle(fontSize: 13.5),
+                    style: TextStyle(fontSize: 13.5, color: textPrimary),
                     validator: (val) => (val == null || val.trim().isEmpty)
                         ? 'Kondisi barang wajib diisi'
                         : null,
-                    decoration: _inputDecoration('Masukkan kondisi barang...'),
+                    decoration: _inputDecoration(
+                      'Masukkan kondisi barang...',
+                      fillColor: fieldFillColor,
+                      borderColor: borderColor,
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -822,8 +898,8 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                       fontSize: 13.5,
                       fontWeight: FontWeight.bold,
                       color: isSecondHandDisabled
-                          ? Colors.grey.shade400
-                          : Colors.black87,
+                          ? Colors.grey.shade500
+                          : textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -839,10 +915,10 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: isSecondHandDisabled
-                            ? const Color(0xFFE5E7EB)
-                            : Colors.white,
+                            ? disabledFillColor
+                            : fieldFillColor,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFD6D6D6)),
+                        border: Border.all(color: borderColor),
                       ),
                       child: Row(
                         children: [
@@ -859,7 +935,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                                 color: isSecondHandDisabled ||
                                         _secondHandPurchaseDate == null
                                     ? Colors.grey.shade500
-                                    : Colors.black87,
+                                    : textPrimary,
                               ),
                             ),
                           ),
@@ -881,8 +957,8 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                               Icons.calendar_today_outlined,
                               size: 18,
                               color: isSecondHandDisabled
-                                  ? Colors.grey.shade400
-                                  : Colors.grey.shade600,
+                                  ? Colors.grey.shade600
+                                  : textSecondary,
                             ),
                         ],
                       ),
@@ -896,7 +972,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     style: GoogleFonts.montserrat(
                       fontSize: 13.5,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -904,9 +980,11 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     controller: _notesController,
                     maxLines: 3,
                     minLines: 2,
-                    style: const TextStyle(fontSize: 13.5),
+                    style: TextStyle(fontSize: 13.5, color: textPrimary),
                     decoration: _inputDecoration(
                       'Masukkan Catatan Tambahan (opsional)...',
+                      fillColor: fieldFillColor,
+                      borderColor: borderColor,
                     ),
                   ),
                   const SizedBox(height: 28),
