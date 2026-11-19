@@ -676,7 +676,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Tanggal Beli',
+                              'Tanggal Pembelian',
                               style: GoogleFonts.montserrat(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.bold,
@@ -849,7 +849,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                           Expanded(
                             child: Text(
                               isSecondHandDisabled
-                                  ? 'Tanggal beli (barang baru) sudah dipilih'
+                                  ? 'Tanggal pembelian (barang baru) sudah dipilih'
                                   : (_secondHandPurchaseDate == null
                                       ? 'Pilih tanggal pembelian BS...'
                                       : _formatTanggalIndo(

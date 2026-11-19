@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/asset_service.dart';
@@ -28,21 +27,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
   String _initialCondition = '';
   String _initialMaintenanceDetail = '';
 
-  static const List<String> _bulanIndo = [
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
-    'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
-  ];
-
   @override
   void dispose() {
     _conditionController.dispose();
@@ -54,20 +38,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     return _conditionController.text.trim() != _initialCondition.trim() ||
         _maintenanceDetailController.text.trim() !=
             _initialMaintenanceDetail.trim();
-  }
-
-  String _formatTanggalIndo(DateTime date) {
-    return '${date.day} ${_bulanIndo[date.month - 1]} ${date.year}';
-  }
-
-  String _formatRibuan(String digits) {
-    final buffer = StringBuffer();
-    for (int i = 0; i < digits.length; i++) {
-      final posFromEnd = digits.length - i;
-      if (i > 0 && posFromEnd % 3 == 0) buffer.write('.');
-      buffer.write(digits[i]);
-    }
-    return buffer.toString();
   }
 
   Future<void> _handleBackPress() async {
@@ -249,147 +219,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
         );
       }
     }
-  }
-
-  Future<void> _showAddMaintenanceDialog(String assetName) async {
-    final costCtrl = TextEditingController();
-    final detailCtrl = TextEditingController();
-    DateTime selectedDate = DateTime.now();
-
-    await showDialog(
-      context: context,
-      builder: (dialogContext) {
-        bool isSavingRecord = false;
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-              title: Text(
-                'Catat Perawatan Baru',
-                style: GoogleFonts.montserrat(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Tanggal Perawatan',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    const SizedBox(height: 4),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: selectedDate,
-                          firstDate: DateTime(2000),
-                          lastDate:
-                              DateTime.now().add(const Duration(days: 365)),
-                        );
-                        if (picked != null) {
-                          setDialogState(() => selectedDate = picked);
-                        }
-                      },
-                      icon: const Icon(Icons.calendar_today, size: 16),
-                      label: Text(_formatTanggalIndo(selectedDate)),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Biaya Perawatan',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: costCtrl,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: const InputDecoration(
-                        prefixText: 'Rp ',
-                        hintText: '350000',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Rincian Perawatan',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: detailCtrl,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        hintText: 'Contoh: Ganti termal pasta & bersihkan kipas',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isSavingRecord
-                      ? null
-                      : () => Navigator.pop(dialogContext),
-                  child: const Text('Batal'),
-                ),
-                ElevatedButton(
-                  onPressed: isSavingRecord
-                      ? null
-                      : () async {
-                          if (detailCtrl.text.trim().isEmpty) return;
-                          setDialogState(() => isSavingRecord = true);
-                          final digits =
-                              costCtrl.text.replaceAll('.', '').trim();
-                          final formattedCost = digits.isEmpty
-                              ? 'Rp 0'
-                              : 'Rp ${_formatRibuan(digits)}';
-                          final cleanDetail = detailCtrl.text.trim();
-
-                          await _assetService.addMaintenanceRecord(
-                            assetId: widget.assetId,
-                            assetName: assetName,
-                            maintenanceDate: _formatTanggalIndo(selectedDate),
-                            cost: formattedCost,
-                            detail: cleanDetail,
-                          );
-
-                          _maintenanceDetailController.text = cleanDetail;
-                          _initialMaintenanceDetail = cleanDetail;
-
-                          if (dialogContext.mounted) {
-                            Navigator.pop(dialogContext);
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Catatan perawatan berhasil disimpan.',
-                                ),
-                                backgroundColor: Color(0xFF004AAD),
-                              ),
-                            );
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF004AAD),
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Simpan'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
   }
 
   Widget _whiteInfoCard({
@@ -717,30 +546,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                             'Belum ada catatan perawatan.',
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () => _showAddMaintenanceDialog(name),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 4,
-                              ),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: const Text(
-                              'Catat Perawatan Baru',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: primaryBlue,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 22),
+                        const SizedBox(height: 24),
 
                         // Tombol Simpan Perubahan
                         SizedBox(
