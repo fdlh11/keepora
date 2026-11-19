@@ -549,7 +549,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                   tooltip: 'Hapus Barang',
                   icon: const Icon(
                     Icons.delete_outline_rounded,
-                    color: Colors.black87,
+                    color: Colors.red,
                     size: 24,
                   ),
                   onPressed: _isSaving ? null : _confirmDeleteAsset,

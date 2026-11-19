@@ -137,6 +137,8 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 style: TextStyle(fontSize: 13, color: Colors.white70),
               ),
               const SizedBox(height: 28),
+
+              // card email
               const Text(
                 'Email',
                 style: TextStyle(
@@ -175,6 +177,8 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 ),
               ),
               const SizedBox(height: 18),
+
+              // Card password
               const Text(
                 'Password',
                 style: TextStyle(
