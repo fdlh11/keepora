@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/asset_service.dart';
@@ -18,26 +19,121 @@ class DetailBarangScreen extends StatefulWidget {
 class _DetailBarangScreenState extends State<DetailBarangScreen> {
   final AssetService _assetService = AssetService();
 
+  final TextEditingController _purchasePriceController =
+      TextEditingController();
   final TextEditingController _conditionController = TextEditingController();
   final TextEditingController _maintenanceDetailController =
       TextEditingController();
 
   bool _isInitialized = false;
   bool _isSaving = false;
+
+  String _purchaseDate = '';
+  DateTime? _selectedPurchaseDate;
+
+  String _initialPurchaseDate = '';
+  String _initialPurchasePriceDigits = '';
   String _initialCondition = '';
   String _initialMaintenanceDetail = '';
 
+  static const List<String> _bulanIndo = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+  ];
+
   @override
   void dispose() {
+    _purchasePriceController.dispose();
     _conditionController.dispose();
     _maintenanceDetailController.dispose();
     super.dispose();
   }
 
+  String _formatTanggalIndo(DateTime date) {
+    return '${date.day} ${_bulanIndo[date.month - 1]} ${date.year}';
+  }
+
+  DateTime? _parseTanggalIndo(String dateStr) {
+    final parts = dateStr.trim().split(' ');
+    if (parts.length != 3) return null;
+    final day = int.tryParse(parts[0]);
+    final monthIndex = _bulanIndo.indexWhere(
+      (b) => b.toLowerCase() == parts[1].toLowerCase(),
+    );
+    final year = int.tryParse(parts[2]);
+    if (day == null || monthIndex == -1 || year == null) return null;
+    return DateTime(year, monthIndex + 1, day);
+  }
+
+  String _formatRibuan(String digits) {
+    if (digits.isEmpty) return '';
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      final posFromEnd = digits.length - i;
+      if (i > 0 && posFromEnd % 3 == 0) buffer.write('.');
+      buffer.write(digits[i]);
+    }
+    return buffer.toString();
+  }
+
+  String _extractDigits(String raw) {
+    return raw.replaceAll(RegExp(r'[^0-9]'), '');
+  }
+
   bool get _hasUnsavedChanges {
-    return _conditionController.text.trim() != _initialCondition.trim() ||
+    final currentPriceDigits = _extractDigits(_purchasePriceController.text);
+    return _purchaseDate.trim() != _initialPurchaseDate.trim() ||
+        currentPriceDigits != _initialPurchasePriceDigits ||
+        _conditionController.text.trim() != _initialCondition.trim() ||
         _maintenanceDetailController.text.trim() !=
             _initialMaintenanceDetail.trim();
+  }
+
+  Future<void> _pickPurchaseDate() async {
+    final now = DateTime.now();
+    final initial = _selectedPurchaseDate ?? now;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(now.year + 5),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: Color(0xFF004AAD),
+                    onPrimary: Colors.white,
+                  )
+                : const ColorScheme.light(
+                    primary: Color(0xFF004AAD),
+                    onPrimary: Colors.white,
+                    onSurface: Colors.black87,
+                  ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && mounted) {
+      setState(() {
+        _selectedPurchaseDate = picked;
+        _purchaseDate = _formatTanggalIndo(picked);
+      });
+    }
   }
 
   Future<void> _handleBackPress() async {
@@ -69,7 +165,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Perubahan pada kondisi barang atau rincian perawatan belum disimpan. Keluar tanpa menyimpan?',
+                'Perubahan data barang belum disimpan. Keluar tanpa menyimpan?',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
@@ -189,17 +285,32 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     }
   }
 
-  Future<void> _saveChanges() async {
+  Future<void> _saveChanges(String purchaseType) async {
     setState(() => _isSaving = true);
     try {
+      final rawPriceDigits = _extractDigits(_purchasePriceController.text);
+      final formattedPrice = rawPriceDigits.isEmpty
+          ? 'Rp 0'
+          : 'Rp ${_formatRibuan(rawPriceDigits)}';
+      final updatedDate = _purchaseDate.trim();
       final updatedCondition = _conditionController.text.trim();
       final updatedDetail = _maintenanceDetailController.text.trim();
 
-      await _assetService.updateAsset(widget.assetId, {
+      final Map<String, dynamic> updatePayload = {
+        'purchaseDate': updatedDate,
+        'purchasePrice': formattedPrice,
         'condition': updatedCondition,
         'maintenanceDetail': updatedDetail,
-      });
+      };
 
+      if (purchaseType == 'Second') {
+        updatePayload['secondHandPurchaseDate'] = updatedDate;
+      }
+
+      await _assetService.updateAsset(widget.assetId, updatePayload);
+
+      _initialPurchaseDate = updatedDate;
+      _initialPurchasePriceDigits = rawPriceDigits;
       _initialCondition = updatedCondition;
       _initialMaintenanceDetail = updatedDetail;
 
@@ -265,12 +376,22 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     );
   }
 
-  InputDecoration _editableBoxDecoration(String hint, bool isDark) {
+  InputDecoration _editableBoxDecoration(
+    String hint,
+    bool isDark, {
+    String? prefixText,
+  }) {
     final borderColor =
         isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0);
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+      prefixText: prefixText,
+      prefixStyle: TextStyle(
+        fontSize: 13.5,
+        fontWeight: FontWeight.bold,
+        color: isDark ? Colors.white : Colors.black87,
+      ),
       filled: true,
       fillColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -319,6 +440,9 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor =
         isDark ? const Color(0xFF121212) : const Color(0xFFF3F4F6);
+    final surfaceColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final borderColor =
+        isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0);
     final textPrimary = isDark ? Colors.white : Colors.black;
 
     return StreamBuilder<QuerySnapshot>(
@@ -349,13 +473,21 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
         final category = (data['category'] ?? 'Umum').toString();
         final photoUrl = (data['photoUrl'] ?? '').toString();
         final purchaseType = (data['purchaseType'] ?? 'Baru').toString();
-        final purchaseDate = (data['purchaseDate'] ?? '-').toString();
-        final purchasePrice = (data['purchasePrice'] ?? 'Rp 0').toString();
+        final rawPurchaseDate = (data['purchaseDate'] ?? '-').toString();
+        final rawPurchasePrice = (data['purchasePrice'] ?? 'Rp 0').toString();
         final lastMaintenance = (data['lastMaintenance'] ?? '-').toString();
         final lastMaintenanceCost =
             (data['lastMaintenanceCost'] ?? 'Rp 0').toString();
 
         if (!_isInitialized) {
+          _initialPurchaseDate = rawPurchaseDate;
+          _purchaseDate = rawPurchaseDate;
+          _selectedPurchaseDate = _parseTanggalIndo(rawPurchaseDate);
+
+          _initialPurchasePriceDigits = _extractDigits(rawPurchasePrice);
+          _purchasePriceController.text =
+              _formatRibuan(_initialPurchasePriceDigits);
+
           _initialCondition = (data['condition'] ?? '').toString();
           _initialMaintenanceDetail =
               (data['maintenanceDetail'] ?? '').toString();
@@ -465,6 +597,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                         ),
                         const SizedBox(height: 18),
 
+                        // Informasi Pembelian (Dapat Diedit)
                         Text(
                           'Informasi Pembelian',
                           style: GoogleFonts.montserrat(
@@ -475,28 +608,116 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                         ),
                         const SizedBox(height: 8),
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: _infoCard(
-                                label: purchaseType == 'Second'
-                                    ? 'Tanggal Pembelian (Second)'
-                                    : 'Tanggal Pembelian',
-                                value: purchaseDate,
-                                isDark: isDark,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    purchaseType == 'Second'
+                                        ? 'Tanggal Pembelian (Second)'
+                                        : 'Tanggal Pembelian',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      color: isDark
+                                          ? Colors.grey.shade400
+                                          : Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  InkWell(
+                                    onTap:
+                                        _isSaving ? null : _pickPurchaseDate,
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Container(
+                                      height: 48,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: surfaceColor,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: borderColor),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              _purchaseDate.isEmpty
+                                                  ? 'Pilih tanggal...'
+                                                  : _purchaseDate,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDark
+                                                    ? Colors.white
+                                                    : Colors.black87,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Icon(
+                                            Icons.calendar_today_outlined,
+                                            size: 16,
+                                            color: isDark
+                                                ? Colors.grey.shade400
+                                                : Colors.grey.shade600,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: _infoCard(
-                                label: 'Harga Pembelian',
-                                value: purchasePrice,
-                                isDark: isDark,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Harga Pembelian',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      color: isDark
+                                          ? Colors.grey.shade400
+                                          : Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  SizedBox(
+                                    height: 48,
+                                    child: TextField(
+                                      controller: _purchasePriceController,
+                                      keyboardType: TextInputType.number,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        _RibuanFormatter(),
+                                      ],
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.black87,
+                                      ),
+                                      decoration: _editableBoxDecoration(
+                                        '0',
+                                        isDark,
+                                        prefixText: 'Rp ',
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 18),
 
+                        // Kondisi Barang (Dapat Diedit)
                         Text(
                           'Kondisi Barang',
                           style: GoogleFonts.montserrat(
@@ -522,6 +743,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                         ),
                         const SizedBox(height: 18),
 
+                        // Catatan Perawatan Terakhir (Read-Only)
                         Text(
                           'Catatan Perawatan Terakhir',
                           style: GoogleFonts.montserrat(
@@ -552,6 +774,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                         ),
                         const SizedBox(height: 18),
 
+                        // Rincian Perawatan (Dapat Diedit)
                         Text(
                           'Rincian Perawatan',
                           style: GoogleFonts.montserrat(
@@ -580,7 +803,9 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: _isSaving ? null : _saveChanges,
+                            onPressed: _isSaving
+                                ? null
+                                : () => _saveChanges(purchaseType),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: primaryBlue,
                               foregroundColor: Colors.white,
@@ -638,6 +863,30 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _RibuanFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll('.', '');
+    if (digits.isEmpty) {
+      return const TextEditingValue(text: '');
+    }
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      final posFromEnd = digits.length - i;
+      if (i > 0 && posFromEnd % 3 == 0) buffer.write('.');
+      buffer.write(digits[i]);
+    }
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }
