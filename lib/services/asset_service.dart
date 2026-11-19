@@ -10,6 +10,22 @@ class AssetService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  static const List<String> _bulanIndo = [
+    '',
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+  ];
+
   String get _uid {
     final uid = _auth.currentUser?.uid;
     if (uid == null) {
@@ -24,12 +40,90 @@ class AssetService {
 
   CollectionReference get _schedulesRef => _userDoc.collection('schedules');
 
+  int _parseCostToInt(dynamic rawCost) {
+    if (rawCost == null) return 0;
+    if (rawCost is num) return rawCost.round();
+    final digits = rawCost.toString().replaceAll(RegExp(r'[^0-9]'), '');
+    return int.tryParse(digits) ?? 0;
+  }
+
+  String _formatRupiah(int amount) {
+    final str = amount.toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < str.length; i++) {
+      final posFromEnd = str.length - i;
+      if (i > 0 && posFromEnd % 3 == 0) buffer.write('.');
+      buffer.write(str[i]);
+    }
+    return 'Rp $buffer';
+  }
+
+  String _formatTanggalIndo(DateTime date) {
+    return '${date.day} ${_bulanIndo[date.month]} ${date.year}';
+  }
+
+  DateTime _extractHistoryDate(Map<String, dynamic> data) {
+    final completedTs = data['completedAt'] as Timestamp?;
+    if (completedTs != null) return completedTs.toDate();
+
+    final createdTs = data['createdAt'] as Timestamp?;
+    if (createdTs != null) return createdTs.toDate();
+
+    return DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  // Sinkronkan riwayat perawatan paling baru ke field Detail Barang
+  Future<void> syncLatestMaintenanceToAsset(String assetId) async {
+    if (assetId.isEmpty) return;
+
+    final assetRef = _assetsRef.doc(assetId);
+    final historySnap = await assetRef.collection('maintenance_history').get();
+
+    if (historySnap.docs.isEmpty) {
+      await assetRef.update({
+        'lastMaintenance': '-',
+        'lastMaintenanceCost': 'Rp 0',
+        'maintenanceDetail': '',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
+    final sortedDocs = [...historySnap.docs]..sort((a, b) {
+        final dataA = a.data();
+        final dataB = b.data();
+        return _extractHistoryDate(dataB).compareTo(_extractHistoryDate(dataA));
+      });
+
+    final latestData = sortedDocs.first.data();
+    final DateTime latestDate = _extractHistoryDate(latestData);
+    final String formattedDate = latestDate.millisecondsSinceEpoch > 0
+        ? _formatTanggalIndo(latestDate)
+        : (latestData['maintenanceDate'] ?? '-').toString();
+
+    final int costInt = _parseCostToInt(latestData['cost']);
+    final String formattedCost = _formatRupiah(costInt);
+
+    final String detailText = (latestData['detail'] ??
+            latestData['notes'] ??
+            latestData['title'] ??
+            '')
+        .toString()
+        .trim();
+
+    await assetRef.update({
+      'lastMaintenance': formattedDate,
+      'lastMaintenanceCost': formattedCost,
+      'maintenanceDetail': detailText,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   // Kompresi & Konversi Foto ke Base64 Data URI (Gratis Tanpa Firebase Storage)
 
   Future<String> uploadAssetImage(File imageFile) async {
     final Uint8List rawBytes = await imageFile.readAsBytes();
 
-    // Kecilkan resolusi maksimal lebar 720px agar ukuran dokumen Firestore tetap ringan (< 300 KB)
     final ui.Codec codec = await ui.instantiateImageCodec(
       rawBytes,
       targetWidth: 720,
@@ -42,7 +136,6 @@ class AssetService {
     final Uint8List finalBytes =
         byteData != null ? byteData.buffer.asUint8List() : rawBytes;
 
-    // Jika hasil PNG masih terlalu besar (> 750 KB), gunakan bytes asli (JPEG hasil kompresi image_picker)
     final Uint8List chosenBytes =
         finalBytes.lengthInBytes > 750000 ? rawBytes : finalBytes;
 
@@ -110,9 +203,8 @@ class AssetService {
       if (assetsSnap.docs.isEmpty) return <QueryDocumentSnapshot>[];
 
       final futures = assetsSnap.docs.map(
-        (assetDoc) => assetDoc.reference
-            .collection('maintenance_history')
-            .get(),
+        (assetDoc) =>
+            assetDoc.reference.collection('maintenance_history').get(),
       );
 
       final snapshots = await Future.wait(futures);
@@ -141,11 +233,9 @@ class AssetService {
   }) async {
     final uid = _uid;
     final assetRef = _assetsRef.doc(assetId);
-    final batch = _firestore.batch();
     final effectiveDate = completedAtDate ?? DateTime.now();
 
-    final historyRef = assetRef.collection('maintenance_history').doc();
-    batch.set(historyRef, {
+    await assetRef.collection('maintenance_history').add({
       'userId': uid,
       'assetId': assetId,
       'assetName': assetName,
@@ -159,14 +249,7 @@ class AssetService {
       'createdAt': FieldValue.serverTimestamp(),
     });
 
-    batch.update(assetRef, {
-      'lastMaintenance': maintenanceDate,
-      'lastMaintenanceCost': cost,
-      'maintenanceDetail': detail,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-
-    await batch.commit();
+    await syncLatestMaintenanceToAsset(assetId);
   }
 
   Future<void> updateMaintenanceRecord({
@@ -179,11 +262,10 @@ class AssetService {
     required dynamic cost,
     required String detail,
   }) async {
-    final batch = _firestore.batch();
     final assetRef = _assetsRef.doc(assetId);
     final historyRef = assetRef.collection('maintenance_history').doc(historyId);
 
-    batch.update(historyRef, {
+    await historyRef.update({
       'title': title.trim(),
       'maintenanceType': maintenanceType,
       'maintenanceDate': maintenanceDate,
@@ -194,28 +276,19 @@ class AssetService {
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
-    // Memicu stream induk agar daftar riwayat langsung refresh otomatis
-    batch.update(assetRef, {
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-
-    await batch.commit();
+    // Otomatis samakan Biaya & Tanggal Perawatan Terakhir di Detail Barang
+    await syncLatestMaintenanceToAsset(assetId);
   }
 
   Future<void> deleteMaintenanceRecord({
     required String assetId,
     required String historyId,
   }) async {
-    final batch = _firestore.batch();
     final assetRef = _assetsRef.doc(assetId);
     final historyRef = assetRef.collection('maintenance_history').doc(historyId);
 
-    batch.delete(historyRef);
-    batch.update(assetRef, {
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-
-    await batch.commit();
+    await historyRef.delete();
+    await syncLatestMaintenanceToAsset(assetId);
   }
 
   // CRUD Jadwal Perawatan (Schedules)
@@ -263,13 +336,6 @@ class AssetService {
 
     if (assetId.isNotEmpty) {
       final assetRef = _assetsRef.doc(assetId);
-      batch.update(assetRef, {
-        'lastMaintenance': dateFormatted,
-        'lastMaintenanceCost': cost,
-        'maintenanceDetail': maintenanceTitle,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
       final historyRef = assetRef.collection('maintenance_history').doc();
       batch.set(historyRef, {
         'userId': uid,
@@ -287,6 +353,9 @@ class AssetService {
     }
 
     await batch.commit();
+    if (assetId.isNotEmpty) {
+      await syncLatestMaintenanceToAsset(assetId);
+    }
   }
 
   Future<void> deleteSchedule(String scheduleId) async {

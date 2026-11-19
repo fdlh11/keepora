@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/jadwal_service.dart';
@@ -55,21 +56,34 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
     return '$jam:$menit WIB';
   }
 
-  void _bukaPopupEdit() {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black54,
-      builder: (_) => _EditJadwalDialog(
-        scheduleId: widget.scheduleId,
-        data: _currentData,
-        jadwalService: _jadwalService,
-        onUpdated: (updatedData) {
-          setState(() {
-            _currentData = updatedData;
-          });
-        },
+  String _formatRupiah(num value) {
+    final digits = value.round().toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      final posFromEnd = digits.length - i;
+      if (i > 0 && posFromEnd % 3 == 0) buffer.write('.');
+      buffer.write(digits[i]);
+    }
+    return 'Rp ${buffer.toString()}';
+  }
+
+  Future<void> _bukaHalamanEdit() async {
+    final updatedData = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditJadwalScreen(
+          scheduleId: widget.scheduleId,
+          data: _currentData,
+          jadwalService: _jadwalService,
+        ),
       ),
     );
+
+    if (updatedData != null && mounted) {
+      setState(() {
+        _currentData = updatedData;
+      });
+    }
   }
 
   Future<void> _konfirmasiHapus() async {
@@ -116,92 +130,19 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
     }
   }
 
-  Future<void> _konfirmasiTandaiSelesai() async {
-    final biayaController = TextEditingController(text: '0');
-    final catatanSelesaiController = TextEditingController(
-      text: (_currentData['notes'] ?? '').toString(),
-    );
-
-    final bool? lanjut = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Selesaikan Perawatan',
-          style: GoogleFonts.montserrat(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Jadwal ini akan dipindahkan ke Riwayat Perawatan.',
-              style: TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: biayaController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Biaya Perawatan (Rp)',
-                prefixText: 'Rp ',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: catatanSelesaiController,
-              maxLines: 2,
-              decoration: InputDecoration(
-                labelText: 'Catatan Hasil Perawatan',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF004AAD),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Simpan ke Riwayat'),
-          ),
-        ],
-      ),
-    );
-
-    if (lanjut != true) return;
-
+  Future<void> _selesaikanJadwalLangsung() async {
     setState(() => _isProcessing = true);
     try {
-      final cleanCost = biayaController.text.replaceAll(RegExp(r'[^0-9]'), '');
-      final double cost = double.tryParse(cleanCost) ?? 0;
-
       await _jadwalService.tandaiSelesai(
         scheduleId: widget.scheduleId,
         scheduleData: _currentData,
-        cost: cost,
-        completionNotes: catatanSelesaiController.text,
       );
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Jadwal selesai & dicatat ke Riwayat Perawatan.'),
+            content: Text('Jadwal selesai & dipindahkan ke Riwayat Perawatan.'),
             backgroundColor: Color(0xFF004AAD),
           ),
         );
@@ -223,12 +164,14 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
     final Timestamp? ts = _currentData['scheduledAt'] as Timestamp?;
     final DateTime scheduledAt = ts?.toDate() ?? DateTime.now();
     final String notes = (_currentData['notes'] ?? '').toString();
+    final num estimatedCost = (_currentData['estimatedCost'] as num?) ?? 0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: AppBar(
         backgroundColor: const Color(0xFFF3F4F6),
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
@@ -244,13 +187,13 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: _isProcessing ? null : _bukaPopupEdit,
+            onPressed: _isProcessing ? null : _bukaHalamanEdit,
             icon: const Icon(Icons.edit_outlined, color: Colors.black87),
             tooltip: 'Edit Jadwal',
           ),
           IconButton(
             onPressed: _isProcessing ? null : _konfirmasiHapus,
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            icon: const Icon(Icons.delete_outline, color: Colors.black87),
             tooltip: 'Hapus Jadwal',
           ),
           const SizedBox(width: 4),
@@ -311,9 +254,15 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
 
             const SizedBox(height: 16),
 
+            _buildLabel('Estimasi Biaya Perawatan'),
+            const SizedBox(height: 6),
+            _buildReadOnlyBox(_formatRupiah(estimatedCost)),
+
+            const SizedBox(height: 16),
+
             _buildLabel('Catatan Tambahan (Opsional)'),
             const SizedBox(height: 6),
-            _buildReadOnlyBox(notes.isEmpty ? '-' : notes, minHeight: 90),
+            _buildReadOnlyBox(notes.isEmpty ? '' : notes, minHeight: 90),
           ],
         ),
       ),
@@ -322,14 +271,14 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
           child: SizedBox(
             width: double.infinity,
-            height: 50,
+            height: 52,
             child: ElevatedButton(
-              onPressed: _isProcessing ? null : _konfirmasiTandaiSelesai,
+              onPressed: _isProcessing ? null : _selesaikanJadwalLangsung,
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryBlue,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: 0,
               ),
@@ -345,7 +294,7 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
                   : Text(
                       'Tandai Selesai',
                       style: GoogleFonts.montserrat(
-                        fontSize: 15,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -373,40 +322,40 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
       constraints: BoxConstraints(minHeight: minHeight),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFF3F4F6),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: Colors.grey.shade400),
       ),
       child: Text(
         value,
         style: TextStyle(
           fontSize: 14,
-          color: Colors.grey.shade800,
+          color: Colors.grey.shade700,
         ),
       ),
     );
   }
 }
 
-class _EditJadwalDialog extends StatefulWidget {
+class EditJadwalScreen extends StatefulWidget {
   final String scheduleId;
   final Map<String, dynamic> data;
   final JadwalService jadwalService;
-  final ValueChanged onUpdated;
 
-  const _EditJadwalDialog({
+  const EditJadwalScreen({
+    super.key,
     required this.scheduleId,
     required this.data,
     required this.jadwalService,
-    required this.onUpdated,
   });
 
   @override
-  State<_EditJadwalDialog> createState() => _EditJadwalDialogState();
+  State<EditJadwalScreen> createState() => _EditJadwalScreenState();
 }
 
-class _EditJadwalDialogState extends State<_EditJadwalDialog> {
+class _EditJadwalScreenState extends State<EditJadwalScreen> {
   late TextEditingController _namaJadwalController;
+  late TextEditingController _estimasiBiayaController;
   late TextEditingController _catatanController;
 
   String? _selectedAssetId;
@@ -440,12 +389,47 @@ class _EditJadwalDialogState extends State<_EditJadwalDialog> {
     'Desember',
   ];
 
+  DateTime get _minScheduleDate {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day + 1);
+  }
+
+  String _formatRibuan(String digits) {
+    if (digits.isEmpty) return '';
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      final posFromEnd = digits.length - i;
+      if (i > 0 && posFromEnd % 3 == 0) buffer.write('.');
+      buffer.write(digits[i]);
+    }
+    return buffer.toString();
+  }
+
+  void _onBiayaChanged(String value) {
+    final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+    final formatted = _formatRibuan(digits);
+    if (formatted != value) {
+      _estimasiBiayaController.value = TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _namaJadwalController = TextEditingController(
       text: (widget.data['title'] ?? '').toString(),
     );
+
+    final num existingCost = (widget.data['estimatedCost'] as num?) ?? 0;
+    _estimasiBiayaController = TextEditingController(
+      text: existingCost > 0
+          ? _formatRibuan(existingCost.round().toString())
+          : '',
+    );
+
     _catatanController = TextEditingController(
       text: (widget.data['notes'] ?? '').toString(),
     );
@@ -475,10 +459,13 @@ class _EditJadwalDialogState extends State<_EditJadwalDialog> {
   }
 
   Future<void> _pilihTanggal() async {
+    final minDate = _minScheduleDate;
+    final initial = _selectedDate.isBefore(minDate) ? minDate : _selectedDate;
+
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
+      initialDate: initial,
+      firstDate: minDate,
       lastDate: DateTime(2035),
       builder: (context, child) {
         return Theme(
@@ -520,6 +507,23 @@ class _EditJadwalDialogState extends State<_EditJadwalDialog> {
       return;
     }
 
+    final pickedDay = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+    );
+    if (pickedDay.isBefore(_minScheduleDate)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Tanggal jadwal harus untuk masa mendatang (minimal besok).',
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
       final scheduledAt = DateTime(
@@ -530,6 +534,10 @@ class _EditJadwalDialogState extends State<_EditJadwalDialog> {
         _selectedTime.minute,
       );
 
+      final cleanDigits =
+          _estimasiBiayaController.text.replaceAll(RegExp(r'[^0-9]'), '');
+      final double estimatedCost = double.tryParse(cleanDigits) ?? 0;
+
       await widget.jadwalService.updateJadwal(
         scheduleId: widget.scheduleId,
         title: namaJadwal,
@@ -537,26 +545,28 @@ class _EditJadwalDialogState extends State<_EditJadwalDialog> {
         assetName: _selectedAssetName ?? '',
         scheduledAt: scheduledAt,
         maintenanceType: _selectedJenisPerawatan,
+        estimatedCost: estimatedCost,
         notes: _catatanController.text,
       );
 
       if (mounted) {
-        widget.onUpdated({
+        final updatedMap = {
           ...widget.data,
           'title': namaJadwal,
           'assetId': _selectedAssetId!,
           'assetName': _selectedAssetName ?? '',
           'scheduledAt': Timestamp.fromDate(scheduledAt),
           'maintenanceType': _selectedJenisPerawatan,
+          'estimatedCost': estimatedCost,
           'notes': _catatanController.text,
-        });
-        Navigator.pop(context);
+        };
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Detail jadwal berhasil diperbarui.'),
             backgroundColor: Color(0xFF004AAD),
           ),
         );
+        Navigator.pop(context, updatedMap);
       }
     } catch (e) {
       if (mounted) {
@@ -572,6 +582,7 @@ class _EditJadwalDialogState extends State<_EditJadwalDialog> {
   @override
   void dispose() {
     _namaJadwalController.dispose();
+    _estimasiBiayaController.dispose();
     _catatanController.dispose();
     super.dispose();
   }
@@ -580,281 +591,324 @@ class _EditJadwalDialogState extends State<_EditJadwalDialog> {
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF004AAD);
 
-    return Dialog(
+    return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 22),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back, color: Colors.black),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-                Expanded(
-                  child: Text(
-                    'Edit Detail Jadwal',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.montserrat(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF3F4F6),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+        ),
+        title: Text(
+          'Edit Detail Jadwal',
+          style: GoogleFonts.montserrat(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Nama Jadwal
+              _buildLabel('Nama Jadwal'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _namaJadwalController,
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
+                decoration: _inputDecoration('Masukkan nama jadwal...'),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Nama Barang
+              _buildLabel('Nama Barang'),
+              const SizedBox(height: 8),
+              StreamBuilder(
+                stream: widget.jadwalService.streamDaftarBarang(),
+                builder: (context, snapshot) {
+                  final docs = snapshot.data?.docs ?? [];
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade400),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 24),
-              ],
-            ),
-            const SizedBox(height: 18),
-            _buildLabel('Nama Jadwal'),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _namaJadwalController,
-              style: const TextStyle(fontSize: 13.5, color: Colors.black87),
-              decoration: _inputDecoration('Masukkan nama jadwal...'),
-            ),
-            const SizedBox(height: 14),
-            _buildLabel('Nama Barang'),
-            const SizedBox(height: 6),
-            StreamBuilder(
-              stream: widget.jadwalService.streamDaftarBarang(),
-              builder: (context, snapshot) {
-                final docs = snapshot.data?.docs ?? [];
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3F4F6),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade400),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: docs.any((d) => d.id == _selectedAssetId)
-                          ? _selectedAssetId
-                          : null,
-                      isExpanded: true,
-                      icon: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: Colors.grey.shade600,
-                      ),
-                      hint: Text(
-                        _selectedAssetName?.isNotEmpty == true
-                            ? _selectedAssetName!
-                            : (docs.isEmpty
-                                ? 'Belum ada data barang'
-                                : 'Pilih nama barang'),
-                        style: TextStyle(
-                          color: _selectedAssetName?.isNotEmpty == true
-                              ? Colors.black87
-                              : Colors.grey.shade500,
-                          fontSize: 13.5,
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: docs.any((d) => d.id == _selectedAssetId)
+                            ? _selectedAssetId
+                            : null,
+                        isExpanded: true,
+                        icon: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: Colors.grey.shade600,
                         ),
+                        hint: Text(
+                          _selectedAssetName?.isNotEmpty == true
+                              ? _selectedAssetName!
+                              : (docs.isEmpty
+                                  ? 'Belum ada data barang'
+                                  : 'Pilih nama barang'),
+                          style: TextStyle(
+                            color: _selectedAssetName?.isNotEmpty == true
+                                ? Colors.black87
+                                : Colors.grey.shade500,
+                            fontSize: 13.5,
+                          ),
+                        ),
+                        items: docs.map((doc) {
+                          final data = doc.data() as Map<String, dynamic>?;
+                          final namaBarang =
+                              (data?['name'] ?? 'Tanpa Nama').toString();
+                          return DropdownMenuItem<String>(
+                            value: doc.id,
+                            child: Text(
+                              namaBarang,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: docs.isEmpty
+                            ? null
+                            : (val) {
+                                final selectedDoc =
+                                    docs.firstWhere((d) => d.id == val);
+                                final selectedData =
+                                    selectedDoc.data() as Map<String, dynamic>?;
+                                setState(() {
+                                  _selectedAssetId = val;
+                                  _selectedAssetName =
+                                      (selectedData?['name'] ?? '').toString();
+                                });
+                              },
                       ),
-                      items: docs.map((doc) {
-                        final data = doc.data() as Map<String, dynamic>?;
-                        final namaBarang =
-                            (data?['name'] ?? 'Tanpa Nama').toString();
-                        return DropdownMenuItem<String>(
-                          value: doc.id,
-                          child: Text(
-                            namaBarang,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.black87,
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // Tanggal & Jam Jadwal
+              Row(
+                children: [
+                  Expanded(
+                    flex: 6,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Tanggal Jadwal'),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: _pilihTanggal,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            height: 48,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade400),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    _formatTanggal(_selectedDate),
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.calendar_today_outlined,
+                                  size: 18,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ],
                             ),
                           ),
-                        );
-                      }).toList(),
-                      onChanged: docs.isEmpty
-                          ? null
-                          : (val) {
-                              final selectedDoc =
-                                  docs.firstWhere((d) => d.id == val);
-                              final selectedData =
-                                  selectedDoc.data() as Map<String, dynamic>?;
-                              setState(() {
-                                _selectedAssetId = val;
-                                _selectedAssetName =
-                                    (selectedData?['name'] ?? '').toString();
-                              });
-                            },
+                        ),
+                      ],
                     ),
                   ),
-                );
-              },
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  flex: 6,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel('Tanggal Jadwal'),
-                      const SizedBox(height: 6),
-                      InkWell(
-                        onTap: _pilihTanggal,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          height: 46,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade400),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _formatTanggal(_selectedDate),
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 12.5,
-                                    color: Colors.black87,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Jam Jadwal'),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: _pilihJam,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            height: 48,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade400),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    _formatJam(_selectedTime),
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.black87,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              Icon(
-                                Icons.calendar_today_outlined,
-                                size: 17,
-                                color: Colors.grey.shade600,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 4,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel('Jam Jadwal'),
-                      const SizedBox(height: 6),
-                      InkWell(
-                        onTap: _pilihJam,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          height: 46,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade400),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _formatJam(_selectedTime),
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 12.5,
-                                    color: Colors.black87,
-                                  ),
+                                Icon(
+                                  Icons.access_time_rounded,
+                                  size: 18,
+                                  color: Colors.grey.shade600,
                                 ),
-                              ),
-                              Icon(
-                                Icons.access_time_rounded,
-                                size: 17,
-                                color: Colors.grey.shade600,
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            _buildLabel('Jenis Perawatan'),
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade400),
+                ],
               ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedJenisPerawatan,
-                  isExpanded: true,
-                  icon: Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: Colors.grey.shade600,
-                  ),
-                  items: _jenisPerawatanList.map((jenis) {
-                    return DropdownMenuItem<String>(
-                      value: jenis,
-                      child: Text(
-                        jenis,
-                        style: const TextStyle(fontSize: 13.5),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() => _selectedJenisPerawatan = val);
-                    }
-                  },
+
+              const SizedBox(height: 16),
+
+              // Jenis Perawatan
+              _buildLabel('Jenis Perawatan'),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade400),
                 ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            _buildLabel('Catatan Tambahan (Opsional)'),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _catatanController,
-              maxLines: 3,
-              style: const TextStyle(fontSize: 13.5, color: Colors.black87),
-              decoration: _inputDecoration('Masukkan catatan tambahan...'),
-            ),
-            const SizedBox(height: 22),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : _simpanPerubahan,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryBlue,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  elevation: 0,
-                ),
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedJenisPerawatan,
+                    isExpanded: true,
+                    icon: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: Colors.grey.shade600,
+                    ),
+                    items: _jenisPerawatanList.map((jenis) {
+                      return DropdownMenuItem<String>(
+                        value: jenis,
+                        child: Text(
+                          jenis,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black87,
+                          ),
                         ),
-                      )
-                    : Text(
-                        'Perbarui',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _selectedJenisPerawatan = val);
+                      }
+                    },
+                  ),
+                ),
               ),
-            ),
-          ],
+
+              const SizedBox(height: 16),
+
+              // Estimasi Biaya Perawatan
+              _buildLabel('Estimasi Biaya Perawatan'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _estimasiBiayaController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                onChanged: _onBiayaChanged,
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
+                decoration: _inputDecoration('00000').copyWith(
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(left: 14, right: 4),
+                    child: Text(
+                      'Rp',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  prefixIconConstraints: const BoxConstraints(
+                    minWidth: 0,
+                    minHeight: 0,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Catatan Tambahan (Opsional)
+              _buildLabel('Catatan Tambahan (Opsional)'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _catatanController,
+                maxLines: 3,
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
+                decoration: _inputDecoration('Masukkan catatan tambahan...'),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Tombol Perbarui
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _simpanPerubahan,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryBlue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : Text(
+                          'Perbarui',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -864,7 +918,7 @@ class _EditJadwalDialogState extends State<_EditJadwalDialog> {
     return Text(
       text,
       style: GoogleFonts.montserrat(
-        fontSize: 13,
+        fontSize: 13.5,
         fontWeight: FontWeight.bold,
         color: Colors.black87,
       ),
@@ -874,8 +928,8 @@ class _EditJadwalDialogState extends State<_EditJadwalDialog> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13.5),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: Colors.grey.shade400),

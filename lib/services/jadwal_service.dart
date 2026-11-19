@@ -5,6 +5,22 @@ class JadwalService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  static const List<String> _bulanIndo = [
+    '',
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+  ];
+
   String get _uid {
     final user = _auth.currentUser;
     if (user == null) {
@@ -19,12 +35,25 @@ class JadwalService {
   CollectionReference get _assetsRef =>
       _firestore.collection('users').doc(_uid).collection('assets');
 
+  String _formatRupiah(num value) {
+    final digits = value.round().toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      final posFromEnd = digits.length - i;
+      if (i > 0 && posFromEnd % 3 == 0) buffer.write('.');
+      buffer.write(digits[i]);
+    }
+    return 'Rp ${buffer.toString()}';
+  }
+
+  String _formatTanggalIndo(DateTime date) {
+    return '${date.day} ${_bulanIndo[date.month]} ${date.year}';
+  }
+
   // Stream daftar jadwal aktif
   Stream<QuerySnapshot> streamJadwalAktif() {
     if (_auth.currentUser == null) return const Stream.empty();
-    return _schedulesRef
-        .where('status', isEqualTo: 'pending')
-        .snapshots();
+    return _schedulesRef.where('status', isEqualTo: 'pending').snapshots();
   }
 
   // Stream daftar barang milik pengguna untuk dropdown
@@ -40,6 +69,7 @@ class JadwalService {
     required String assetName,
     required DateTime scheduledAt,
     required String maintenanceType,
+    double estimatedCost = 0,
     String notes = '',
   }) async {
     await _schedulesRef.add({
@@ -48,6 +78,7 @@ class JadwalService {
       'assetName': assetName,
       'scheduledAt': Timestamp.fromDate(scheduledAt),
       'maintenanceType': maintenanceType,
+      'estimatedCost': estimatedCost,
       'notes': notes.trim(),
       'status': 'pending',
       'createdAt': FieldValue.serverTimestamp(),
@@ -63,6 +94,7 @@ class JadwalService {
     required String assetName,
     required DateTime scheduledAt,
     required String maintenanceType,
+    double estimatedCost = 0,
     String notes = '',
   }) async {
     await _schedulesRef.doc(scheduleId).update({
@@ -71,6 +103,7 @@ class JadwalService {
       'assetName': assetName,
       'scheduledAt': Timestamp.fromDate(scheduledAt),
       'maintenanceType': maintenanceType,
+      'estimatedCost': estimatedCost,
       'notes': notes.trim(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -81,15 +114,16 @@ class JadwalService {
     await _schedulesRef.doc(scheduleId).delete();
   }
 
-  // Tandai jadwal selesai dan pindahkan ke riwayat perawatan aset
+  // Tandai jadwal selesai dan pindahkan otomatis ke riwayat perawatan aset
   Future<void> tandaiSelesai({
     required String scheduleId,
     required Map<String, dynamic> scheduleData,
-    required double cost,
-    String completionNotes = '',
   }) async {
     final batch = _firestore.batch();
     final scheduleDoc = _schedulesRef.doc(scheduleId);
+
+    final num rawEstimate = (scheduleData['estimatedCost'] as num?) ?? 0;
+    final double finalCost = rawEstimate.toDouble();
 
     batch.update(scheduleDoc, {
       'status': 'completed',
@@ -98,31 +132,33 @@ class JadwalService {
     });
 
     final String assetId = (scheduleData['assetId'] ?? '').toString();
-    final String finalNotes = completionNotes.trim().isNotEmpty
-        ? completionNotes.trim()
-        : (scheduleData['notes'] ?? '').toString();
+    final String notes = (scheduleData['notes'] ?? '').toString().trim();
+    final String title = (scheduleData['title'] ?? '').toString();
+    final String detailText = notes.isNotEmpty ? notes : title;
 
     if (assetId.isNotEmpty) {
       final assetRef = _assetsRef.doc(assetId);
-      final maintenanceDoc =
-          assetRef.collection('maintenance_history').doc();
+      final maintenanceDoc = assetRef.collection('maintenance_history').doc();
 
       batch.set(maintenanceDoc, {
         'userId': _uid,
         'scheduleId': scheduleId,
-        'title': scheduleData['title'] ?? '',
+        'title': title,
         'assetId': assetId,
         'assetName': scheduleData['assetName'] ?? '',
         'maintenanceType': scheduleData['maintenanceType'] ?? 'Perawatan',
-        'cost': cost,
-        'detail': finalNotes,
-        'notes': finalNotes,
+        'cost': finalCost,
+        'detail': detailText,
+        'notes': notes,
         'completedAt': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // Memicu stream induk agar tab Riwayat langsung auto-refresh real-time
+      // Sinkronkan juga informasi perawatan terakhir pada dokumen aset
       batch.update(assetRef, {
+        'lastMaintenance': _formatTanggalIndo(DateTime.now()),
+        'lastMaintenanceCost': _formatRupiah(finalCost),
+        if (detailText.isNotEmpty) 'maintenanceDetail': detailText,
         'updatedAt': FieldValue.serverTimestamp(),
       });
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/jadwal_service.dart';
@@ -13,6 +14,8 @@ class TambahJadwalScreen extends StatefulWidget {
 class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
   final JadwalService _jadwalService = JadwalService();
   final TextEditingController _namaJadwalController = TextEditingController();
+  final TextEditingController _estimasiBiayaController =
+      TextEditingController();
   final TextEditingController _catatanController = TextEditingController();
 
   String? _selectedAssetId;
@@ -46,6 +49,11 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
     'Desember',
   ];
 
+  DateTime get _minScheduleDate {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day + 1);
+  }
+
   String _formatTanggal(DateTime date) {
     return '${date.day} ${_bulanIndo[date.month]} ${date.year}';
   }
@@ -56,12 +64,38 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
     return '$jam:$menit WIB';
   }
 
+  String _formatRibuan(String digits) {
+    if (digits.isEmpty) return '';
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      final posFromEnd = digits.length - i;
+      if (i > 0 && posFromEnd % 3 == 0) buffer.write('.');
+      buffer.write(digits[i]);
+    }
+    return buffer.toString();
+  }
+
+  void _onBiayaChanged(String value) {
+    final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+    final formatted = _formatRibuan(digits);
+    if (formatted != value) {
+      _estimasiBiayaController.value = TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+    }
+  }
+
   Future<void> _pilihTanggal() async {
-    final now = DateTime.now();
+    final minDate = _minScheduleDate;
+    final initial = (_selectedDate != null && !_selectedDate!.isBefore(minDate))
+        ? _selectedDate!
+        : minDate;
+
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? now,
-      firstDate: DateTime(2020),
+      initialDate: initial,
+      firstDate: minDate,
       lastDate: DateTime(2035),
       builder: (context, child) {
         return Theme(
@@ -112,6 +146,23 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
       return;
     }
 
+    final pickedDay = DateTime(
+      _selectedDate!.year,
+      _selectedDate!.month,
+      _selectedDate!.day,
+    );
+    if (pickedDay.isBefore(_minScheduleDate)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Tanggal jadwal harus untuk masa mendatang (minimal besok).',
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -123,12 +174,17 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
         _selectedTime!.minute,
       );
 
+      final cleanDigits =
+          _estimasiBiayaController.text.replaceAll(RegExp(r'[^0-9]'), '');
+      final double estimatedCost = double.tryParse(cleanDigits) ?? 0;
+
       await _jadwalService.tambahJadwal(
         title: namaJadwal,
         assetId: _selectedAssetId!,
         assetName: _selectedAssetName ?? '',
         scheduledAt: scheduledAt,
         maintenanceType: _selectedJenisPerawatan!,
+        estimatedCost: estimatedCost,
         notes: _catatanController.text,
       );
 
@@ -158,6 +214,7 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
   @override
   void dispose() {
     _namaJadwalController.dispose();
+    _estimasiBiayaController.dispose();
     _catatanController.dispose();
     super.dispose();
   }
@@ -237,7 +294,8 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                         ),
                         items: docs.map((doc) {
                           final data = doc.data() as Map<String, dynamic>?;
-                          final namaBarang = (data?['name'] ?? 'Tanpa Nama').toString();
+                          final namaBarang =
+                              (data?['name'] ?? 'Tanpa Nama').toString();
                           return DropdownMenuItem<String>(
                             value: doc.id,
                             child: Text(
@@ -254,10 +312,12 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                             : (val) {
                                 final selectedDoc =
                                     docs.firstWhere((d) => d.id == val);
-                                final selectedData = selectedDoc.data() as Map<String, dynamic>?;
+                                final selectedData =
+                                    selectedDoc.data() as Map<String, dynamic>?;
                                 setState(() {
                                   _selectedAssetId = val;
-                                  _selectedAssetName = (selectedData?['name'] ?? '').toString();
+                                  _selectedAssetName =
+                                      (selectedData?['name'] ?? '').toString();
                                 });
                               },
                       ),
@@ -412,6 +472,36 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
 
               const SizedBox(height: 16),
 
+              // Estimasi Biaya Perawatan
+              _buildLabel('Estimasi Biaya Perawatan'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _estimasiBiayaController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                onChanged: _onBiayaChanged,
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
+                decoration: _inputDecoration('00000').copyWith(
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(left: 14, right: 4),
+                    child: Text(
+                      'Rp',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  prefixIconConstraints: const BoxConstraints(
+                    minWidth: 0,
+                    minHeight: 0,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
               // Catatan Tambahan
               _buildLabel('Catatan Tambahan (Opsional)'),
               const SizedBox(height: 8),
@@ -424,7 +514,7 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                 ),
               ),
 
-              const SizedBox(height: 36),
+              const SizedBox(height: 32),
 
               // Tombol Tambah Jadwal
               SizedBox(

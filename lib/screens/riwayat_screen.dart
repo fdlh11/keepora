@@ -18,7 +18,14 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   late DateTime _selectedMonthYear;
   String _selectedFilter = 'Semua';
 
-  final List<String> _filters = const ['Semua', 'Perawatan', 'Perbaikan'];
+  final List<String> _filters = const [
+    'Semua',
+    'Perawatan',
+    'Perbaikan',
+    'Pembersihan',
+    'Penggantian Komponen',
+    'Pengecekan Rutin',
+  ];
 
   static const List<String> _bulanLengkap = [
     '',
@@ -125,7 +132,11 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
 
   String _normalizeCategory(Map<String, dynamic> data) {
     final raw = (data['maintenanceType'] ?? 'Perawatan').toString().trim();
-    if (raw.toLowerCase() == 'perbaikan') return 'Perbaikan';
+    for (final option in _filters) {
+      if (option != 'Semua' && option.toLowerCase() == raw.toLowerCase()) {
+        return option;
+      }
+    }
     return 'Perawatan';
   }
 
@@ -314,58 +325,58 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                 ),
               ),
 
-              // Judul Section & Filter Chips
+              // Judul Section
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Riwayat Perbaikan/Perawatan Terakhir',
-                      style: GoogleFonts.montserrat(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: _filters.map((filter) {
-                        final isSelected = _selectedFilter == filter;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ChoiceChip(
-                            label: Text(
-                              filter,
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.w500,
-                                color:
-                                    isSelected ? Colors.white : Colors.black87,
-                              ),
-                            ),
-                            selected: isSelected,
-                            selectedColor: primaryBlue,
-                            backgroundColor: const Color(0xFFF3F4F6),
-                            side: BorderSide(
-                              color: isSelected
-                                  ? primaryBlue
-                                  : Colors.grey.shade400,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            showCheckmark: false,
-                            onSelected: (_) {
-                              setState(() => _selectedFilter = filter);
-                            },
+                child: Text(
+                  'Riwayat Perbaikan/Perawatan Terakhir',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Filter Chips Horizontal Scrollable
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: _filters.map((filter) {
+                    final isSelected = _selectedFilter == filter;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(
+                          filter,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                            color: isSelected ? Colors.white : Colors.black87,
                           ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
+                        ),
+                        selected: isSelected,
+                        selectedColor: primaryBlue,
+                        backgroundColor: const Color(0xFFF3F4F6),
+                        side: BorderSide(
+                          color: isSelected
+                              ? primaryBlue
+                              : Colors.grey.shade400,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        showCheckmark: false,
+                        onSelected: (_) {
+                          setState(() => _selectedFilter = filter);
+                        },
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
               const SizedBox(height: 12),
@@ -580,7 +591,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   }
 }
 
-// Layar Penuh Edit Riwayat Perawatan (Sesuai Desain Figma)
+// Layar Penuh Edit Riwayat Perawatan
 class EditRiwayatScreen extends StatefulWidget {
   final String assetId;
   final String historyId;
@@ -609,7 +620,13 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
   late TimeOfDay _selectedTime;
   bool _isSaving = false;
 
-  final List<String> _jenisPerawatanOptions = const ['Perawatan', 'Perbaikan'];
+  final List<String> _jenisPerawatanOptions = const [
+    'Perawatan',
+    'Perbaikan',
+    'Pembersihan',
+    'Penggantian Komponen',
+    'Pengecekan Rutin',
+  ];
 
   static const List<String> _bulanIndo = [
     '',
@@ -654,9 +671,12 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
 
     _catatanController = TextEditingController(text: rawDetail);
 
-    final rawType = (widget.data['maintenanceType'] ?? 'Perawatan').toString();
-    _selectedJenisPerawatan =
-        rawType.toLowerCase() == 'perbaikan' ? 'Perbaikan' : 'Perawatan';
+    final rawType =
+        (widget.data['maintenanceType'] ?? 'Perawatan').toString().trim();
+    _selectedJenisPerawatan = _jenisPerawatanOptions.firstWhere(
+      (item) => item.toLowerCase() == rawType.toLowerCase(),
+      orElse: () => _jenisPerawatanOptions.first,
+    );
 
     final ts = (widget.data['completedAt'] as Timestamp?) ??
         (widget.data['createdAt'] as Timestamp?);
@@ -859,7 +879,10 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                   child: DropdownButton<String>(
                     value: _selectedJenisPerawatan,
                     isExpanded: true,
-                    icon: const SizedBox.shrink(),
+                    icon: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: Colors.grey.shade600,
+                    ),
                     style:
                         TextStyle(fontSize: 13.5, color: Colors.grey.shade700),
                     items: _jenisPerawatanOptions.map((jenis) {
@@ -962,10 +985,19 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                 ],
                 style: TextStyle(fontSize: 13.5, color: Colors.grey.shade700),
                 decoration: _inputDecoration('0').copyWith(
-                  prefixText: 'Rp ',
-                  prefixStyle: TextStyle(
-                    fontSize: 13.5,
-                    color: Colors.grey.shade700,
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(left: 14, right: 4),
+                    child: Text(
+                      'Rp',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ),
+                  prefixIconConstraints: const BoxConstraints(
+                    minWidth: 0,
+                    minHeight: 0,
                   ),
                 ),
               ),
