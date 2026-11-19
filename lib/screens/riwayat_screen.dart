@@ -492,7 +492,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                       child: const Padding(
                                         padding: EdgeInsets.all(4),
                                         child: Icon(
-                                          Icons.edit_note_rounded,
+                                          Icons.edit_outlined,
                                           size: 24,
                                           color: Colors.black87,
                                         ),
