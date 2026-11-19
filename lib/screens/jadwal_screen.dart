@@ -15,6 +15,9 @@ class JadwalScreen extends StatefulWidget {
 
 class _JadwalScreenState extends State<JadwalScreen> {
   final JadwalService _jadwalService = JadwalService();
+  late final PageController _calendarPageController;
+
+  static const double _weekRowHeight = 38.0;
 
   late DateTime _focusedMonth;
   late DateTime _selectedDate;
@@ -67,6 +70,15 @@ class _JadwalScreenState extends State<JadwalScreen> {
     final now = DateTime.now();
     _selectedDate = DateTime(now.year, now.month, now.day);
     _focusedMonth = DateTime(now.year, now.month, 1);
+
+    final initialPage = _getTargetTwoWeekPageIndex();
+    _calendarPageController = PageController(initialPage: initialPage);
+  }
+
+  @override
+  void dispose() {
+    _calendarPageController.dispose();
+    super.dispose();
   }
 
   bool _isSameDay(DateTime a, DateTime b) {
@@ -97,13 +109,52 @@ class _JadwalScreenState extends State<JadwalScreen> {
     }
   }
 
-  List<DateTime> _getTwoWeekDates() {
-    final anchor = (_selectedDate.year == _focusedMonth.year &&
-            _selectedDate.month == _focusedMonth.month)
-        ? _selectedDate
-        : _focusedMonth;
-    final monday = anchor.subtract(Duration(days: anchor.weekday - 1));
-    return List.generate(14, (i) => monday.add(Duration(days: i)));
+  // Menghasilkan daftar minggu dalam 1 bulan dengan jumlah genap (kelipatan 2 minggu)
+  List<List<DateTime>> _getMonthWeeks() {
+    final firstDayOfMonth = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
+    final lastDayOfMonth =
+        DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0);
+
+    final startMonday =
+        firstDayOfMonth.subtract(Duration(days: firstDayOfMonth.weekday - 1));
+    final endSunday =
+        lastDayOfMonth.add(Duration(days: 7 - lastDayOfMonth.weekday));
+
+    final totalDays = endSunday.difference(startMonday).inDays + 1;
+    int weekCount = (totalDays / 7).ceil();
+    if (weekCount.isOdd) {
+      weekCount += 1;
+    }
+
+    return List.generate(weekCount, (weekIndex) {
+      return List.generate(7, (dayIndex) {
+        return startMonday.add(Duration(days: weekIndex * 7 + dayIndex));
+      });
+    });
+  }
+
+  int _getTargetTwoWeekPageIndex() {
+    final weeks = _getMonthWeeks();
+    final targetWeekIndex = weeks.indexWhere(
+      (week) => week.any((d) => _isSameDay(d, _selectedDate)),
+    );
+    if (targetWeekIndex == -1) return 0;
+    return targetWeekIndex ~/ 2;
+  }
+
+  void _scrollToSelectedTwoWeeks({bool animate = true}) {
+    if (!_calendarPageController.hasClients) return;
+
+    final targetPage = _getTargetTwoWeekPageIndex();
+    if (animate) {
+      _calendarPageController.animateToPage(
+        targetPage,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    } else {
+      _calendarPageController.jumpToPage(targetPage);
+    }
   }
 
   void _gantiBulan(int delta) {
@@ -117,6 +168,90 @@ class _JadwalScreenState extends State<JadwalScreen> {
         _selectedDate = _focusedMonth;
       }
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToSelectedTwoWeeks(animate: true);
+    });
+  }
+
+  Widget _buildWeekRow({
+    required List<DateTime> weekDates,
+    required DateTime today,
+    required List<DateTime> allScheduledDates,
+    required Color primaryBlue,
+    required Color accentBlue,
+    required Color textPrimary,
+    required bool isDark,
+  }) {
+    return SizedBox(
+      height: _weekRowHeight,
+      child: Row(
+        children: List.generate(7, (col) {
+          final date = weekDates[col];
+          final bool isToday = _isSameDay(date, today);
+          final bool isSelected = _isSameDay(date, _selectedDate);
+          final bool hasSchedule =
+              allScheduledDates.any((d) => _isSameDay(d, date));
+          final bool isCurrentMonth = date.month == _focusedMonth.month;
+
+          return Expanded(
+            child: GestureDetector(
+              onTap: () {
+                final changedMonth = date.month != _focusedMonth.month ||
+                    date.year != _focusedMonth.year;
+                setState(() {
+                  _selectedDate = date;
+                  _focusedMonth = DateTime(date.year, date.month, 1);
+                });
+                if (changedMonth) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _scrollToSelectedTwoWeeks(animate: true);
+                  });
+                }
+              },
+              child: Container(
+                height: 34,
+                margin: const EdgeInsets.symmetric(vertical: 2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: hasSchedule ? primaryBlue : Colors.transparent,
+                  border: isToday && !hasSchedule
+                      ? Border.all(
+                          color: accentBlue,
+                          width: 1.4,
+                        )
+                      : (isSelected && !hasSchedule
+                          ? Border.all(
+                              color: isDark
+                                  ? Colors.grey.shade600
+                                  : Colors.grey.shade400,
+                              width: 1.2,
+                            )
+                          : null),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${date.day}',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: (hasSchedule || isToday)
+                        ? FontWeight.bold
+                        : FontWeight.w500,
+                    color: hasSchedule
+                        ? Colors.white
+                        : (isCurrentMonth
+                            ? textPrimary
+                            : (isDark
+                                ? Colors.grey.shade700
+                                : Colors.grey.shade400)),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
   }
 
   @override
@@ -135,7 +270,8 @@ class _JadwalScreenState extends State<JadwalScreen> {
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final calendarDates = _getTwoWeekDates();
+    final monthWeeks = _getMonthWeeks();
+    final twoWeekPageCount = monthWeeks.length ~/ 2;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -277,72 +413,42 @@ class _JadwalScreenState extends State<JadwalScreen> {
                     ),
                     const SizedBox(height: 8),
 
-                    for (int row = 0; row < 2; row++) ...[
-                      Row(
-                        children: List.generate(7, (col) {
-                          final date = calendarDates[row * 7 + col];
-                          final bool isToday = _isSameDay(date, today);
-                          final bool isSelected =
-                              _isSameDay(date, _selectedDate);
-                          final bool hasSchedule = allScheduledDates
-                              .any((d) => _isSameDay(d, date));
-                          final bool isCurrentMonth =
-                              date.month == _focusedMonth.month;
-
-                          return Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _selectedDate = date;
-                                  _focusedMonth =
-                                      DateTime(date.year, date.month, 1);
-                                });
-                              },
-                              child: Container(
-                                height: 34,
-                                margin: const EdgeInsets.symmetric(vertical: 2),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: hasSchedule
-                                      ? primaryBlue
-                                      : Colors.transparent,
-                                  border: isToday && !hasSchedule
-                                      ? Border.all(
-                                          color: accentBlue,
-                                          width: 1.4,
-                                        )
-                                      : (isSelected && !hasSchedule
-                                          ? Border.all(
-                                              color: isDark
-                                                  ? Colors.grey.shade600
-                                                  : Colors.grey.shade400,
-                                              width: 1.2,
-                                            )
-                                          : null),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  '${date.day}',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: (hasSchedule || isToday)
-                                        ? FontWeight.bold
-                                        : FontWeight.w500,
-                                    color: hasSchedule
-                                        ? Colors.white
-                                        : (isCurrentMonth
-                                            ? textPrimary
-                                            : (isDark
-                                                ? Colors.grey.shade700
-                                                : Colors.grey.shade400)),
-                                  ),
-                                ),
+                    // Scroll vertikal per 2 minggu (snap tiap 2 baris)
+                    SizedBox(
+                      height: _weekRowHeight * 2,
+                      child: PageView.builder(
+                        controller: _calendarPageController,
+                        scrollDirection: Axis.vertical,
+                        physics: const PageScrollPhysics(),
+                        itemCount: twoWeekPageCount,
+                        itemBuilder: (context, pageIndex) {
+                          final firstWeek = monthWeeks[pageIndex * 2];
+                          final secondWeek = monthWeeks[pageIndex * 2 + 1];
+                          return Column(
+                            children: [
+                              _buildWeekRow(
+                                weekDates: firstWeek,
+                                today: today,
+                                allScheduledDates: allScheduledDates,
+                                primaryBlue: primaryBlue,
+                                accentBlue: accentBlue,
+                                textPrimary: textPrimary,
+                                isDark: isDark,
                               ),
-                            ),
+                              _buildWeekRow(
+                                weekDates: secondWeek,
+                                today: today,
+                                allScheduledDates: allScheduledDates,
+                                primaryBlue: primaryBlue,
+                                accentBlue: accentBlue,
+                                textPrimary: textPrimary,
+                                isDark: isDark,
+                              ),
+                            ],
                           );
-                        }),
+                        },
                       ),
-                    ],
+                    ),
 
                     const SizedBox(height: 8),
                     Divider(height: 1, color: borderColor),
