@@ -19,6 +19,8 @@ class DetailBarangScreen extends StatefulWidget {
 class _DetailBarangScreenState extends State<DetailBarangScreen> {
   final AssetService _assetService = AssetService();
 
+  final TextEditingController _nameController = TextEditingController();
+  final FocusNode _nameFocusNode = FocusNode();
   final TextEditingController _purchasePriceController =
       TextEditingController();
   final TextEditingController _conditionController = TextEditingController();
@@ -27,14 +29,29 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
 
   bool _isInitialized = false;
   bool _isSaving = false;
+  bool _isEditingName = false;
 
+  String _selectedCategory = 'Umum';
   String _purchaseDate = '';
   DateTime? _selectedPurchaseDate;
 
+  String _initialName = '';
+  String _initialCategory = 'Umum';
   String _initialPurchaseDate = '';
   String _initialPurchasePriceDigits = '';
   String _initialCondition = '';
   String _initialMaintenanceDetail = '';
+
+  static const List<String> _defaultCategories = [
+    'Elektronik',
+    'Kendaraan',
+    'Furnitur',
+    'Peralatan Rumah',
+    'Gadget',
+    'Olahraga & Hobi',
+    'Umum',
+    'Lainnya',
+  ];
 
   static const List<String> _bulanIndo = [
     'Januari',
@@ -52,7 +69,24 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _nameFocusNode.addListener(() {
+      if (!_nameFocusNode.hasFocus && _isEditingName && mounted) {
+        setState(() {
+          if (_nameController.text.trim().isEmpty) {
+            _nameController.text = _initialName;
+          }
+          _isEditingName = false;
+        });
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _nameController.dispose();
+    _nameFocusNode.dispose();
     _purchasePriceController.dispose();
     _conditionController.dispose();
     _maintenanceDetailController.dispose();
@@ -90,9 +124,19 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     return raw.replaceAll(RegExp(r'[^0-9]'), '');
   }
 
+  List<String> _getCategoryOptions() {
+    final options = List<String>.from(_defaultCategories);
+    if (_selectedCategory.isNotEmpty && !options.contains(_selectedCategory)) {
+      options.insert(0, _selectedCategory);
+    }
+    return options;
+  }
+
   bool get _hasUnsavedChanges {
     final currentPriceDigits = _extractDigits(_purchasePriceController.text);
-    return _purchaseDate.trim() != _initialPurchaseDate.trim() ||
+    return _nameController.text.trim() != _initialName.trim() ||
+        _selectedCategory.trim() != _initialCategory.trim() ||
+        _purchaseDate.trim() != _initialPurchaseDate.trim() ||
         currentPriceDigits != _initialPurchasePriceDigits ||
         _conditionController.text.trim() != _initialCondition.trim() ||
         _maintenanceDetailController.text.trim() !=
@@ -286,17 +330,35 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
   }
 
   Future<void> _saveChanges(String purchaseType) async {
-    setState(() => _isSaving = true);
+    final updatedName = _nameController.text.trim();
+    if (updatedName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nama barang tidak boleh kosong.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+      _isEditingName = false;
+    });
+
     try {
       final rawPriceDigits = _extractDigits(_purchasePriceController.text);
       final formattedPrice = rawPriceDigits.isEmpty
           ? 'Rp 0'
           : 'Rp ${_formatRibuan(rawPriceDigits)}';
+      final updatedCategory = _selectedCategory.trim();
       final updatedDate = _purchaseDate.trim();
       final updatedCondition = _conditionController.text.trim();
       final updatedDetail = _maintenanceDetailController.text.trim();
 
       final Map<String, dynamic> updatePayload = {
+        'name': updatedName,
+        'category': updatedCategory,
         'purchaseDate': updatedDate,
         'purchasePrice': formattedPrice,
         'condition': updatedCondition,
@@ -309,6 +371,8 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
 
       await _assetService.updateAsset(widget.assetId, updatePayload);
 
+      _initialName = updatedName;
+      _initialCategory = updatedCategory;
       _initialPurchaseDate = updatedDate;
       _initialPurchasePriceDigits = rawPriceDigits;
       _initialCondition = updatedCondition;
@@ -469,8 +533,8 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
         }
 
         final data = matched.first.data() as Map<String, dynamic>? ?? {};
-        final name = (data['name'] ?? '-').toString();
-        final category = (data['category'] ?? 'Umum').toString();
+        final rawName = (data['name'] ?? '-').toString();
+        final rawCategory = (data['category'] ?? 'Umum').toString();
         final photoUrl = (data['photoUrl'] ?? '').toString();
         final purchaseType = (data['purchaseType'] ?? 'Baru').toString();
         final rawPurchaseDate = (data['purchaseDate'] ?? '-').toString();
@@ -480,6 +544,12 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
             (data['lastMaintenanceCost'] ?? 'Rp 0').toString();
 
         if (!_isInitialized) {
+          _initialName = rawName;
+          _nameController.text = rawName;
+
+          _initialCategory = rawCategory.isEmpty ? 'Umum' : rawCategory;
+          _selectedCategory = _initialCategory;
+
           _initialPurchaseDate = rawPurchaseDate;
           _purchaseDate = rawPurchaseDate;
           _selectedPurchaseDate = _parseTanggalIndo(rawPurchaseDate);
@@ -495,6 +565,8 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
           _maintenanceDetailController.text = _initialMaintenanceDetail;
           _isInitialized = true;
         }
+
+        final categoryOptions = _getCategoryOptions();
 
         return PopScope(
           canPop: false,
@@ -556,14 +628,63 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Expanded(
-                              child: Text(
-                                name,
-                                style: GoogleFonts.montserrat(
-                                  fontSize: 18.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: textPrimary,
-                                ),
-                              ),
+                              child: _isEditingName
+                                  ? TextField(
+                                      controller: _nameController,
+                                      focusNode: _nameFocusNode,
+                                      autofocus: true,
+                                      textInputAction: TextInputAction.done,
+                                      onSubmitted: (_) {
+                                        setState(() {
+                                          if (_nameController.text
+                                              .trim()
+                                              .isEmpty) {
+                                            _nameController.text =
+                                                _initialName;
+                                          }
+                                          _isEditingName = false;
+                                        });
+                                      },
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 18.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: textPrimary,
+                                      ),
+                                      decoration: const InputDecoration(
+                                        isDense: true,
+                                        contentPadding:
+                                            EdgeInsets.symmetric(vertical: 4),
+                                        border: UnderlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color: primaryBlue,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        focusedBorder: UnderlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color: primaryBlue,
+                                            width: 1.8,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : GestureDetector(
+                                      onTap: _isSaving
+                                          ? null
+                                          : () {
+                                              setState(() {
+                                                _isEditingName = true;
+                                              });
+                                            },
+                                      child: Text(
+                                        _nameController.text,
+                                        style: GoogleFonts.montserrat(
+                                          fontSize: 18.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: textPrimary,
+                                        ),
+                                      ),
+                                    ),
                             ),
                             const SizedBox(width: 10),
                             Container(
@@ -582,14 +703,62 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                                       : const Color(0xFF93C5FD),
                                 ),
                               ),
-                              child: Text(
-                                category,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark
-                                      ? const Color(0xFF60A5FA)
-                                      : primaryBlue,
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _selectedCategory,
+                                  isDense: true,
+                                  icon: const SizedBox.shrink(),
+                                  dropdownColor: surfaceColor,
+                                  borderRadius: BorderRadius.circular(14),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? const Color(0xFF60A5FA)
+                                        : primaryBlue,
+                                  ),
+                                  selectedItemBuilder: (context) {
+                                    return categoryOptions.map((cat) {
+                                      return Center(
+                                        child: Text(
+                                          cat,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDark
+                                                ? const Color(0xFF60A5FA)
+                                                : primaryBlue,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList();
+                                  },
+                                  items: categoryOptions.map((cat) {
+                                    return DropdownMenuItem<String>(
+                                      value: cat,
+                                      child: Text(
+                                        cat,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: cat == _selectedCategory
+                                              ? FontWeight.bold
+                                              : FontWeight.w500,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: _isSaving
+                                      ? null
+                                      : (newValue) {
+                                          if (newValue != null) {
+                                            setState(() {
+                                              _selectedCategory = newValue;
+                                            });
+                                          }
+                                        },
                                 ),
                               ),
                             ),
