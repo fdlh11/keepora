@@ -20,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'Semua';
 
+  // list kategori
   final List<String> _categories = [
     'Semua',
     'Elektronik',
@@ -58,6 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
+        // Judul aplikasi
         title: Text(
           'Keepora',
           style: GoogleFonts.montserrat(
@@ -81,6 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   decoration: InputDecoration(
                     hintText: 'Cari nama barang...',
                     hintStyle: TextStyle(fontSize: 13.5, color: textMuted),
+                    // icon search/pencarian
                     prefixIcon: Icon(
                       Icons.search_rounded,
                       color: textSecondary,
@@ -224,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(height: 6),
                               Text(
                                 allDocs.isEmpty
-                                    ? 'Tekan tombol "+ Barang" di pojok kanan bawah untuk mulai mencatat aset Anda.'
+                                    ? 'Belum ada barang tersimpan. Tambahkan barang pertama Anda lewat tombol di pojok kanan bawah.'
                                     : 'Coba ubah kata kunci pencarian atau filter kategori.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(

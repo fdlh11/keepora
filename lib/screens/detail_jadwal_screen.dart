@@ -24,6 +24,7 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
   late Map<String, dynamic> _currentData;
   bool _isProcessing = false;
 
+  // list bulan
   static const List<String> _bulanIndo = [
     '',
     'Januari',
@@ -46,16 +47,19 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
     _currentData = Map<String, dynamic>.from(widget.data);
   }
 
+  // format tanggal
   String _formatTanggal(DateTime date) {
     return '${date.day} ${_bulanIndo[date.month]} ${date.year}';
   }
 
+  // format jam
   String _formatJam(DateTime date) {
     final jam = date.hour.toString().padLeft(2, '0');
     final menit = date.minute.toString().padLeft(2, '0');
     return '$jam:$menit WIB';
   }
 
+  // format rupiah
   String _formatRupiah(num value) {
     final digits = value.round().toString();
     final buffer = StringBuffer();
@@ -86,6 +90,7 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
     }
   }
 
+  // konfirmasi hapus jadwal
   Future<void> _konfirmasiHapus() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final confirm = await showDialog<bool>(
@@ -120,6 +125,8 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // bbutton ya hapus
               Row(
                 children: [
                   Expanded(
@@ -149,6 +156,8 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
+
+                  // button ya batal
                   Expanded(
                     child: SizedBox(
                       height: 44,
@@ -262,6 +271,7 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
         centerTitle: true,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
+          // button back
           icon: Icon(Icons.arrow_back, color: textPrimary),
         ),
         title: Text(
@@ -272,12 +282,16 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
             color: textPrimary,
           ),
         ),
+
+        // icon edit jadwal
         actions: [
           IconButton(
             onPressed: _isProcessing ? null : _bukaHalamanEdit,
             icon: Icon(Icons.edit_outlined, color: textPrimary),
             tooltip: 'Edit Jadwal',
           ),
+
+          // icon hapus jadwal
           IconButton(
             onPressed: _isProcessing ? null : _konfirmasiHapus,
             icon: Icon(Icons.delete_outline, color: textPrimary),
@@ -356,6 +370,8 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
           ],
         ),
       ),
+
+      // button tandai selesai
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
@@ -434,6 +450,8 @@ class EditJadwalScreen extends StatefulWidget {
   final Map<String, dynamic> data;
   final JadwalService jadwalService;
 
+
+  // halaman edit jadwal
   const EditJadwalScreen({
     super.key,
     required this.scheduleId,
@@ -465,6 +483,7 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
   late String _initialCostDigits;
   late String _initialNotes;
 
+  // list jenis perawatan
   final List<String> _jenisPerawatanList = const [
     'Perawatan',
     'Perbaikan',
@@ -473,6 +492,7 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
     'Pengecekan Rutin',
   ];
 
+  // list bulan
   static const List<String> _bulanIndo = [
     '',
     'Januari',
@@ -489,11 +509,13 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
     'Desember',
   ];
 
+  // tanggal minimum untuk jadwal adalah besok
   DateTime get _minScheduleDate {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day + 1);
   }
 
+  // format angka ribuan
   String _formatRibuan(String digits) {
     if (digits.isEmpty) return '';
     final buffer = StringBuffer();
@@ -505,6 +527,7 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
     return buffer.toString();
   }
 
+// handle perubahan input biaya
   void _onBiayaChanged(String value) {
     final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
     final formatted = _formatRibuan(digits);
@@ -605,6 +628,8 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // button lanjut mengedit
               Row(
                 children: [
                   Expanded(
@@ -637,6 +662,8 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
+
+                  // button keluar
                   Expanded(
                     child: SizedBox(
                       height: 44,
@@ -680,16 +707,20 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
     }
   }
 
+
+  // format tanggal
   String _formatTanggal(DateTime date) {
     return '${date.day} ${_bulanIndo[date.month]} ${date.year}';
   }
 
+  // format jam
   String _formatJam(TimeOfDay time) {
     final jam = time.hour.toString().padLeft(2, '0');
     final menit = time.minute.toString().padLeft(2, '0');
     return '$jam:$menit WIB';
   }
 
+  // format tanggal
   Future<void> _pilihTanggal() async {
     final minDate = _minScheduleDate;
     final initial = _selectedDate.isBefore(minDate) ? minDate : _selectedDate;
@@ -717,6 +748,7 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
     if (picked != null) setState(() => _selectedDate = picked);
   }
 
+  // format jam
   Future<void> _pilihJam() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showTimePicker(
@@ -994,6 +1026,8 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                                       ),
                                     ),
                                   ),
+
+                                  // icon kalender
                                   Icon(
                                     Icons.calendar_today_outlined,
                                     size: 18,
@@ -1037,6 +1071,8 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                                       ),
                                     ),
                                   ),
+
+                                  // icon jam
                                   Icon(
                                     Icons.access_time_rounded,
                                     size: 18,
@@ -1127,6 +1163,8 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
 
                 _buildLabel('Catatan Tambahan (Opsional)', isDark),
                 const SizedBox(height: 8),
+
+                // field catatan tambahan
                 TextField(
                   controller: _catatanController,
                   maxLines: 3,

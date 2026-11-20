@@ -22,6 +22,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
   late DateTime _focusedMonth;
   late DateTime _selectedDate;
 
+  // list bulan
   static const List<String> _bulanIndo = [
     '',
     'Januari',
@@ -38,6 +39,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
     'Desember',
   ];
 
+  // list bulan singkat
   static const List<String> _bulanSingkat = [
     '',
     'Jan',
@@ -54,6 +56,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
     'Des',
   ];
 
+  // list nama hari
   static const List<String> _namaHari = [
     'Senin',
     'Selasa',
@@ -413,7 +416,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
                     ),
                     const SizedBox(height: 8),
 
-                    // Scroll vertikal per 2 minggu (snap tiap 2 baris)
+                    // Scroll vertikal setiap 2 minggu
                     SizedBox(
                       height: _weekRowHeight * 2,
                       child: PageView.builder(

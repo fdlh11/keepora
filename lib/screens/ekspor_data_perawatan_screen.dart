@@ -31,6 +31,7 @@ class _EksporDataPerawatanScreenState extends State<EksporDataPerawatanScreen> {
   late DateTime _selectedMonthYear;
   bool _isExporting = false;
 
+  // list bulan
   static const List<String> _bulanIndo = [
     '',
     'Januari',
@@ -54,10 +55,12 @@ class _EksporDataPerawatanScreenState extends State<EksporDataPerawatanScreen> {
     _selectedMonthYear = DateTime(now.year, now.month);
   }
 
+  // formayt bulan/tahun
   String _formatBulanTahun(DateTime date) {
     return '${_bulanIndo[date.month]} ${date.year}';
   }
 
+  // format tanggal
   String _formatTanggalIndo(DateTime date) {
     return '${date.day} ${_bulanIndo[date.month]} ${date.year}';
   }
@@ -216,6 +219,8 @@ class _EksporDataPerawatanScreenState extends State<EksporDataPerawatanScreen> {
                       },
                     ),
                     const SizedBox(height: 18),
+
+                    // button batal dan pilih
                     Row(
                       children: [
                         Expanded(
@@ -288,6 +293,7 @@ class _EksporDataPerawatanScreenState extends State<EksporDataPerawatanScreen> {
     }
   }
 
+  // format/ field pdf
   Future<void> _downloadPdf({
     required List<QueryDocumentSnapshot> filteredDocs,
     required String selectedAssetLabel,

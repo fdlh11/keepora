@@ -24,6 +24,8 @@ class _AkunScreenState extends State<AkunScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+   
+  // Button Logout
   Future<void> _confirmLogout() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bool? shouldLogout = await showDialog<bool>(
@@ -76,6 +78,7 @@ class _AkunScreenState extends State<AkunScreen> {
                         ),
                         child: const FittedBox(
                           fit: BoxFit.scaleDown,
+                          // Button Confirm Logout
                           child: Text(
                             'Ya, Logout',
                             maxLines: 1,
@@ -108,6 +111,7 @@ class _AkunScreenState extends State<AkunScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
+                        // Button Cancel Logout
                         child: const Text(
                           'Batal',
                           maxLines: 1,
@@ -336,6 +340,7 @@ class _AkunScreenState extends State<AkunScreen> {
                                         const EdgeInsets.symmetric(vertical: 2),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
+                                      // Button edit profile
                                       children: [
                                         Text(
                                           'Edit Profile',
@@ -347,6 +352,7 @@ class _AkunScreenState extends State<AkunScreen> {
                                           ),
                                         ),
                                         const SizedBox(width: 6),
+                                        // Icon edit profile
                                         const Icon(
                                           Icons.edit_outlined,
                                           size: 15,
@@ -373,6 +379,8 @@ class _AkunScreenState extends State<AkunScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
+
+                    // Button ekspor laporan pdf
                     _buildMenuTile(
                       icon: Icons.picture_as_pdf_outlined,
                       label: 'Ekspor Laporan PDF',
@@ -390,6 +398,8 @@ class _AkunScreenState extends State<AkunScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
+
+                    // button tampilan mode gelap / terang
                     _buildMenuTile(
                       icon: isDark
                           ? Icons.dark_mode_outlined
@@ -420,6 +430,8 @@ class _AkunScreenState extends State<AkunScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
+
+                    // Button ubah password
                     _buildMenuTile(
                       icon: Icons.settings_outlined,
                       label: 'Ubah Password',
@@ -449,6 +461,7 @@ class _AkunScreenState extends State<AkunScreen> {
                         ),
                         child: Row(
                           children: [
+                            // Icon Logout
                             const Icon(
                               Icons.logout_rounded,
                               color: Color(0xFFEF4444),
@@ -460,6 +473,7 @@ class _AkunScreenState extends State<AkunScreen> {
                               style: GoogleFonts.montserrat(
                                 fontSize: 14.5,
                                 fontWeight: FontWeight.bold,
+                                // Warna logout 
                                 color: const Color(0xFFEF4444),
                               ),
                             ),

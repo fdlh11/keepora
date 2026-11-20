@@ -40,6 +40,7 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
   late String _initialCostDigits;
   late String _initialNotes;
 
+  // list jenis perawatan
   final List<String> _jenisPerawatanOptions = const [
     'Perawatan',
     'Perbaikan',
@@ -48,6 +49,7 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
     'Pengecekan Rutin',
   ];
 
+  // list bulan
   static const List<String> _bulanIndo = [
     '',
     'Januari',
@@ -171,6 +173,8 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // button lanjut mengisi
               Row(
                 children: [
                   Expanded(
@@ -203,6 +207,8 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
+
+                  // button keluar
                   Expanded(
                     child: SizedBox(
                       height: 44,
@@ -397,6 +403,7 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
           elevation: 0,
           scrolledUnderElevation: 0,
           centerTitle: true,
+          // icon back/kembali
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: textPrimary),
             onPressed: _isSaving ? null : _handleBackPress,

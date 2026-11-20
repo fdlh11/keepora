@@ -41,6 +41,7 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
   late String _currentPhotoUrl;
   bool _isSaving = false;
 
+  // list bulan
   static const List<String> _bulanIndo = [
     'Januari',
     'Februari',
@@ -73,6 +74,7 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
     super.dispose();
   }
 
+  // format tanggal
   String _formatTanggalIndo(DateTime date) {
     return '${date.day} ${_bulanIndo[date.month - 1]} ${date.year}';
   }
@@ -96,13 +98,14 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
         _currentPhotoUrl != widget.initialPhotoUrl;
   }
 
+  // format pilih gambar
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
-        maxWidth: 320,
-        maxHeight: 320,
-        imageQuality: 65,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
       );
 
       if (pickedFile != null && mounted) {
@@ -170,6 +173,7 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
                       color: iconBg,
                       borderRadius: BorderRadius.circular(12),
                     ),
+                    // icon kamera
                     child: Icon(Icons.camera_alt_outlined, color: iconColor),
                   ),
                   title: Text(
@@ -193,6 +197,7 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
                       color: iconBg,
                       borderRadius: BorderRadius.circular(12),
                     ),
+                    // icon foto galeri
                     child: Icon(Icons.photo_library_outlined, color: iconColor),
                   ),
                   title: Text(
@@ -219,6 +224,7 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
                             : Colors.red.shade50,
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      // icon hapus
                       child: Icon(
                         Icons.delete_outline,
                         color: Colors.red.shade400,
@@ -325,6 +331,8 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // button edit
               Row(
                 children: [
                   Expanded(
@@ -357,6 +365,8 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
+
+                  // button keluar
                   Expanded(
                     child: SizedBox(
                       height: 44,
@@ -562,6 +572,7 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
             onPressed: _isSaving ? null : _handleBackPress,
             icon: Icon(Icons.arrow_back, color: textPrimary),
           ),
+          // button edit profile
           title: Text(
             'Edit Profile',
             style: GoogleFonts.montserrat(
@@ -625,6 +636,8 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
+
+                // field nama lengkap
                 TextField(
                   controller: _nameController,
                   enabled: !_isSaving,
@@ -645,6 +658,8 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
+
+                // field tanggal lahir
                 InkWell(
                   onTap: _isSaving ? null : _pickBirthDate,
                   borderRadius: BorderRadius.circular(12),
@@ -670,7 +685,8 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-
+                
+                // field email
                 Text(
                   'Email',
                   style: GoogleFonts.montserrat(
