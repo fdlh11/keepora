@@ -1,12 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  static const String _onboardingPrefKey = 'keepora_has_seen_onboarding';
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
   User? get currentUser => _auth.currentUser;
@@ -95,10 +92,8 @@ class AuthService {
     }
   }
 
-  // Keluar Akun & reset status onboarding agar muncul lagi saat buka aplikasi ulang
+  // Keluar Akun (tanpa mereset onboarding)
   Future<void> signOut() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_onboardingPrefKey, false);
     await _auth.signOut();
   }
 
