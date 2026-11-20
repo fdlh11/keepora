@@ -4,15 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 import '../main.dart';
-import '../services/asset_service.dart';
 import '../services/auth_service.dart';
-import '../utils/top_notif.dart';
 import 'edit_profile_screen.dart';
+import 'ekspor_data_perawatan_screen.dart';
 import 'login_screen.dart';
 import 'ubah_password_screen.dart';
 
@@ -25,61 +21,8 @@ class AkunScreen extends StatefulWidget {
 
 class _AkunScreenState extends State<AkunScreen> {
   final AuthService _authService = AuthService();
-  final AssetService _assetService = AssetService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  bool _isExportingPdf = false;
-
-  static const List<String> _bulanIndo = [
-    '',
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
-    'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
-  ];
-
-  String _formatTanggalIndo(DateTime date) {
-    return '${date.day} ${_bulanIndo[date.month]} ${date.year}';
-  }
-
-  String _formatRibuan(int number) {
-    final digits = number.toString();
-    final buffer = StringBuffer();
-    for (int i = 0; i < digits.length; i++) {
-      final posFromEnd = digits.length - i;
-      if (i > 0 && posFromEnd % 3 == 0) buffer.write('.');
-      buffer.write(digits[i]);
-    }
-    return buffer.toString();
-  }
-
-  int _parseCostToInt(dynamic rawCost) {
-    if (rawCost == null) return 0;
-    if (rawCost is num) return rawCost.toInt();
-    final digits = rawCost.toString().replaceAll(RegExp(r'[^0-9]'), '');
-    return int.tryParse(digits) ?? 0;
-  }
-
-  String _extractDateText(Map<String, dynamic> data) {
-    final dynamic rawDate =
-        data['completedAt'] ?? data['scheduledAt'] ?? data['date'];
-    if (rawDate is Timestamp) {
-      return _formatTanggalIndo(rawDate.toDate());
-    }
-    if (rawDate is String && rawDate.trim().isNotEmpty) {
-      return rawDate.trim();
-    }
-    return '-';
-  }
 
   Future<void> _confirmLogout() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -220,6 +163,21 @@ class _AkunScreenState extends State<AkunScreen> {
     }
   }
 
+  void _openExportPdfScreen({
+    required String ownerName,
+    required String ownerEmail,
+  }) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EksporDataPerawatanScreen(
+          ownerName: ownerName,
+          ownerEmail: ownerEmail,
+        ),
+      ),
+    );
+  }
+
   void _openChangePasswordScreen() {
     Navigator.push(
       context,
@@ -259,254 +217,6 @@ class _AkunScreenState extends State<AkunScreen> {
         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
       ),
     );
-  }
-
-  Future<void> _exportMaintenancePdf(String ownerName, String ownerEmail) async {
-    if (_isExportingPdf) return;
-    setState(() => _isExportingPdf = true);
-
-    try {
-      final docs = await _assetService.getAllMaintenanceHistoryStream().first;
-      if (docs.isEmpty) {
-        if (mounted) {
-          showTopNotif(
-            context,
-            'Belum ada data riwayat untuk diekspor.',
-            isError: true,
-          );
-        }
-        return;
-      }
-
-      int totalBiaya = 0;
-      final List<List<String>> tableRows = [];
-
-      for (int i = 0; i < docs.length; i++) {
-        final data = docs[i].data() as Map<String, dynamic>? ?? {};
-        final title =
-            (data['title'] ?? data['detail'] ?? 'Perawatan').toString();
-        final assetName = (data['assetName'] ?? '-').toString();
-        final type = (data['maintenanceType'] ?? 'Perawatan').toString();
-        final dateStr = _extractDateText(data);
-        final costInt = _parseCostToInt(data['cost']);
-        totalBiaya += costInt;
-
-        tableRows.add([
-          '${i + 1}',
-          dateStr,
-          assetName,
-          title,
-          type,
-          'Rp ${_formatRibuan(costInt)}',
-        ]);
-      }
-
-      final pdf = pw.Document();
-      final primaryPdfColor = PdfColor.fromHex('#004AAD');
-      final lightBlueBg = PdfColor.fromHex('#DBEAFE');
-      final zebraRowBg = PdfColor.fromHex('#F8FAFC');
-      final borderPdfColor = PdfColor.fromHex('#CBD5E1');
-      final printedDate = _formatTanggalIndo(DateTime.now());
-
-      pdf.addPage(
-        pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(32),
-          header: (context) => pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Container(
-                padding: const pw.EdgeInsets.all(16),
-                decoration: pw.BoxDecoration(
-                  color: primaryPdfColor,
-                  borderRadius: pw.BorderRadius.circular(10),
-                ),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: pw.CrossAxisAlignment.center,
-                  children: [
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text(
-                          'LAPORAN RIWAYAT PERAWATAN',
-                          style: pw.TextStyle(
-                            color: PdfColors.white,
-                            fontSize: 15,
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                        pw.SizedBox(height: 4),
-                        pw.Text(
-                          'Keepora - Pencatatan Riwayat Perawatan & Perbaikan Barang Pribadi',
-                          style: const pw.TextStyle(
-                            color: PdfColors.white,
-                            fontSize: 9.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      children: [
-                        pw.Text(
-                          ownerName,
-                          style: pw.TextStyle(
-                            color: PdfColors.white,
-                            fontSize: 10.5,
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                        pw.SizedBox(height: 2),
-                        pw.Text(
-                          ownerEmail,
-                          style: const pw.TextStyle(
-                            color: PdfColors.white,
-                            fontSize: 9,
-                          ),
-                        ),
-                        pw.SizedBox(height: 2),
-                        pw.Text(
-                          'Dicetak: $printedDate',
-                          style: const pw.TextStyle(
-                            color: PdfColors.white,
-                            fontSize: 8.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              pw.SizedBox(height: 14),
-            ],
-          ),
-          footer: (context) => pw.Container(
-            padding: const pw.EdgeInsets.only(top: 8),
-            decoration: pw.BoxDecoration(
-              border: pw.Border(
-                top: pw.BorderSide(color: borderPdfColor, width: 0.6),
-              ),
-            ),
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Text(
-                  'Laporan Riwayat Perawatan - Keepora',
-                  style: const pw.TextStyle(
-                    fontSize: 8.5,
-                    color: PdfColors.grey600,
-                  ),
-                ),
-                pw.Text(
-                  'Halaman ${context.pageNumber} dari ${context.pagesCount}',
-                  style: const pw.TextStyle(
-                    fontSize: 8.5,
-                    color: PdfColors.grey600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          build: (context) => [
-            pw.Container(
-              padding: const pw.EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 10,
-              ),
-              decoration: pw.BoxDecoration(
-                color: lightBlueBg,
-                borderRadius: pw.BorderRadius.circular(8),
-              ),
-              child: pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text(
-                    'Total Catatan Perawatan: ${docs.length} Riwayat',
-                    style: pw.TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: pw.FontWeight.bold,
-                      color: primaryPdfColor,
-                    ),
-                  ),
-                  pw.Text(
-                    'Total Biaya: Rp ${_formatRibuan(totalBiaya)}',
-                    style: pw.TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: pw.FontWeight.bold,
-                      color: primaryPdfColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            pw.SizedBox(height: 14),
-            pw.TableHelper.fromTextArray(
-              headers: const [
-                'No',
-                'Tanggal',
-                'Nama Barang',
-                'Rincian Perawatan',
-                'Jenis',
-                'Biaya',
-              ],
-              data: tableRows,
-              headerStyle: pw.TextStyle(
-                color: PdfColors.white,
-                fontWeight: pw.FontWeight.bold,
-                fontSize: 9.5,
-              ),
-              headerDecoration: pw.BoxDecoration(color: primaryPdfColor),
-              cellStyle: const pw.TextStyle(fontSize: 9),
-              cellPadding: const pw.EdgeInsets.symmetric(
-                horizontal: 6,
-                vertical: 6,
-              ),
-              oddRowDecoration: pw.BoxDecoration(color: zebraRowBg),
-              border: pw.TableBorder.all(color: borderPdfColor, width: 0.5),
-              columnWidths: {
-                0: const pw.FixedColumnWidth(26),
-                1: const pw.FixedColumnWidth(72),
-                2: const pw.FlexColumnWidth(2.2),
-                3: const pw.FlexColumnWidth(2.8),
-                4: const pw.FixedColumnWidth(68),
-                5: const pw.FixedColumnWidth(78),
-              },
-              cellAlignments: {
-                0: pw.Alignment.center,
-                1: pw.Alignment.centerLeft,
-                2: pw.Alignment.centerLeft,
-                3: pw.Alignment.centerLeft,
-                4: pw.Alignment.center,
-                5: pw.Alignment.centerRight,
-              },
-            ),
-          ],
-        ),
-      );
-
-      final pdfBytes = await pdf.save();
-      final now = DateTime.now();
-      final fileName =
-          'Laporan_Perawatan_Keepora_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.pdf';
-
-      await Printing.layoutPdf(
-        onLayout: (_) async => pdfBytes,
-        name: fileName,
-      );
-    } catch (e) {
-      if (mounted) {
-        showTopNotif(
-          context,
-          'Gagal membuat laporan PDF: $e',
-          isError: true,
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isExportingPdf = false);
-      }
-    }
   }
 
   @override
@@ -669,21 +379,15 @@ class _AkunScreenState extends State<AkunScreen> {
                       cardBgColor: cardBgColor,
                       borderColor: borderColor,
                       textColor: itemTextColor,
-                      onTap: () => _exportMaintenancePdf(displayName, email),
-                      trailing: _isExportingPdf
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: primaryBlue,
-                              ),
-                            )
-                          : Icon(
-                              Icons.chevron_right_rounded,
-                              color: itemTextColor,
-                              size: 22,
-                            ),
+                      onTap: () => _openExportPdfScreen(
+                        ownerName: displayName,
+                        ownerEmail: email,
+                      ),
+                      trailing: Icon(
+                        Icons.chevron_right_rounded,
+                        color: itemTextColor,
+                        size: 22,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     _buildMenuTile(
