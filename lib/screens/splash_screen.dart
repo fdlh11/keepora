@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,20 +15,33 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   Timer? _timer;
 
+  static const String _onboardingPrefKey = 'keepora_has_seen_onboarding';
+
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(seconds: 4), () {
-      if (!mounted) return;
+    _timer = Timer(const Duration(seconds: 4), _navigateNext);
+  }
 
-      final User? currentUser = FirebaseAuth.instance.currentUser;
+  Future<void> _navigateNext() async {
+    if (!mounted) return;
 
-      if (currentUser != null && currentUser.emailVerified) {
-        Navigator.pushReplacementNamed(context, '/home');
-      } else {
-        Navigator.pushReplacementNamed(context, '/onboarding');
-      }
-    });
+    final User? currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser != null && currentUser.emailVerified) {
+      Navigator.pushReplacementNamed(context, '/home');
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final bool hasSeenOnboarding = prefs.getBool(_onboardingPrefKey) ?? false;
+
+    if (!mounted) return;
+    if (hasSeenOnboarding) {
+      Navigator.pushReplacementNamed(context, '/login');
+    } else {
+      Navigator.pushReplacementNamed(context, '/onboarding');
+    }
   }
 
   @override

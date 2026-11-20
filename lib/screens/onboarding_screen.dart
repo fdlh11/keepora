@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -11,6 +12,8 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
+
+  static const String _onboardingPrefKey = 'keepora_has_seen_onboarding';
 
   final List _onboardingData = [
     {
@@ -33,6 +36,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     },
   ];
 
+  Future<void> _finishOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingPrefKey, true);
+
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
   void _onNext() {
     if (_currentIndex < _onboardingData.length - 1) {
       _pageController.nextPage(
@@ -40,7 +51,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         curve: Curves.easeInOut,
       );
     } else {
-      Navigator.pushReplacementNamed(context, '/login');
+      _finishOnboarding();
     }
   }
 
@@ -79,9 +90,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   alignment: Alignment.centerRight,
                   child: _currentIndex < _onboardingData.length - 1
                       ? TextButton(
-                          onPressed: () {
-                            Navigator.pushReplacementNamed(context, '/login');
-                          },
+                          onPressed: _finishOnboarding,
                           child: Text(
                             'Lewati',
                             style: TextStyle(
