@@ -54,6 +54,130 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
     return DateTime(now.year, now.month, now.day + 1);
   }
 
+  bool get _hasUnsavedChanges {
+    return _namaJadwalController.text.trim().isNotEmpty ||
+        _selectedAssetId != null ||
+        _selectedDate != null ||
+        _selectedTime != null ||
+        _selectedJenisPerawatan != null ||
+        _estimasiBiayaController.text.trim().isNotEmpty ||
+        _catatanController.text.trim().isNotEmpty;
+  }
+
+  Future<void> _handleBackPress() async {
+    if (!_hasUnsavedChanges) {
+      Navigator.pop(context);
+      return;
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool? shouldLeave = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Perubahan Belum Disimpan',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.montserrat(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Anda sedang mengisi jadwal baru. Data yang sudah diisi akan hilang jika Anda keluar.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF004AAD),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Lanjutkan Mengisi',
+                            maxLines: 1,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: isDark
+                              ? const Color(0xFF60A5FA)
+                              : const Color(0xFF004AAD),
+                          side: const BorderSide(
+                            color: Color(0xFF64A1F4),
+                            width: 1.2,
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'Keluar',
+                          maxLines: 1,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (shouldLeave == true && mounted) {
+      Navigator.pop(context);
+    }
+  }
+
   String _formatTanggal(DateTime date) {
     return '${date.day} ${_bulanIndo[date.month]} ${date.year}';
   }
@@ -243,347 +367,354 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
     final textPrimary = theme.colorScheme.onSurface;
     final textSecondary = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await _handleBackPress();
+      },
+      child: Scaffold(
         backgroundColor: bgColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Tambah Jadwal Baru',
-          style: GoogleFonts.montserrat(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: textPrimary,
+        appBar: AppBar(
+          backgroundColor: bgColor,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          centerTitle: true,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: textPrimary),
+            onPressed: _isLoading ? null : _handleBackPress,
+          ),
+          title: Text(
+            'Tambah Jadwal Baru',
+            style: GoogleFonts.montserrat(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: textPrimary,
+            ),
           ),
         ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Nama Jadwal
-              _buildLabel('Nama Jadwal', textPrimary),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _namaJadwalController,
-                style: TextStyle(fontSize: 14, color: textPrimary),
-                decoration: _inputDecoration(
-                  'Masukkan nama jadwal...',
-                  fillColor: fieldFillColor,
-                  borderColor: borderColor,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Nama Jadwal
+                _buildLabel('Nama Jadwal', textPrimary),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _namaJadwalController,
+                  style: TextStyle(fontSize: 14, color: textPrimary),
+                  decoration: _inputDecoration(
+                    'Masukkan nama jadwal...',
+                    fillColor: fieldFillColor,
+                    borderColor: borderColor,
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Nama Barang
-              _buildLabel('Nama Barang', textPrimary),
-              const SizedBox(height: 8),
-              StreamBuilder(
-                stream: _jadwalService.streamDaftarBarang(),
-                builder: (context, snapshot) {
-                  final docs = snapshot.data?.docs ?? [];
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: fieldFillColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: borderColor),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: docs.any((d) => d.id == _selectedAssetId)
-                            ? _selectedAssetId
-                            : null,
-                        isExpanded: true,
-                        dropdownColor: fieldFillColor,
-                        icon: Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: textSecondary,
-                        ),
-                        hint: Text(
-                          docs.isEmpty
-                              ? 'Belum ada data barang'
-                              : 'Pilih nama barang',
-                          style: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 13.5,
+                // Nama Barang
+                _buildLabel('Nama Barang', textPrimary),
+                const SizedBox(height: 8),
+                StreamBuilder(
+                  stream: _jadwalService.streamDaftarBarang(),
+                  builder: (context, snapshot) {
+                    final docs = snapshot.data?.docs ?? [];
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: fieldFillColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: docs.any((d) => d.id == _selectedAssetId)
+                              ? _selectedAssetId
+                              : null,
+                          isExpanded: true,
+                          dropdownColor: fieldFillColor,
+                          icon: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: textSecondary,
                           ),
+                          hint: Text(
+                            docs.isEmpty
+                                ? 'Belum ada data barang'
+                                : 'Pilih nama barang',
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 13.5,
+                            ),
+                          ),
+                          items: docs.map((doc) {
+                            final data = doc.data() as Map<String, dynamic>?;
+                            final namaBarang =
+                                (data?['name'] ?? 'Tanpa Nama').toString();
+                            return DropdownMenuItem<String>(
+                              value: doc.id,
+                              child: Text(
+                                namaBarang,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: textPrimary,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: docs.isEmpty
+                              ? null
+                              : (val) {
+                                  final selectedDoc =
+                                      docs.firstWhere((d) => d.id == val);
+                                  final selectedData =
+                                      selectedDoc.data() as Map<String, dynamic>?;
+                                  setState(() {
+                                    _selectedAssetId = val;
+                                    _selectedAssetName =
+                                        (selectedData?['name'] ?? '').toString();
+                                  });
+                                },
                         ),
-                        items: docs.map((doc) {
-                          final data = doc.data() as Map<String, dynamic>?;
-                          final namaBarang =
-                              (data?['name'] ?? 'Tanpa Nama').toString();
-                          return DropdownMenuItem<String>(
-                            value: doc.id,
-                            child: Text(
-                              namaBarang,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: textPrimary,
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // Tanggal & Jam Jadwal
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 6,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Tanggal Jadwal', textPrimary),
+                          const SizedBox(height: 8),
+                          InkWell(
+                            onTap: _pilihTanggal,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              height: 48,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: fieldFillColor,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: borderColor),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _selectedDate != null
+                                          ? _formatTanggal(_selectedDate!)
+                                          : 'Pilih Tanggal Jadwal',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: _selectedDate != null
+                                            ? textPrimary
+                                            : Colors.grey.shade500,
+                                      ),
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.calendar_today_outlined,
+                                    size: 18,
+                                    color: textSecondary,
+                                  ),
+                                ],
                               ),
                             ),
-                          );
-                        }).toList(),
-                        onChanged: docs.isEmpty
-                            ? null
-                            : (val) {
-                                final selectedDoc =
-                                    docs.firstWhere((d) => d.id == val);
-                                final selectedData =
-                                    selectedDoc.data() as Map<String, dynamic>?;
-                                setState(() {
-                                  _selectedAssetId = val;
-                                  _selectedAssetName =
-                                      (selectedData?['name'] ?? '').toString();
-                                });
-                              },
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // Tanggal & Jam Jadwal
-              Row(
-                children: [
-                  Expanded(
-                    flex: 6,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('Tanggal Jadwal', textPrimary),
-                        const SizedBox(height: 8),
-                        InkWell(
-                          onTap: _pilihTanggal,
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            height: 48,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              color: fieldFillColor,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: borderColor),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    _selectedDate != null
-                                        ? _formatTanggal(_selectedDate!)
-                                        : 'Pilih Tanggal Jadwal',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: _selectedDate != null
-                                          ? textPrimary
-                                          : Colors.grey.shade500,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Jam Jadwal', textPrimary),
+                          const SizedBox(height: 8),
+                          InkWell(
+                            onTap: _pilihJam,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              height: 48,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: fieldFillColor,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: borderColor),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _selectedTime != null
+                                          ? _formatJam(_selectedTime!)
+                                          : 'Pilih Jam',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: _selectedTime != null
+                                            ? textPrimary
+                                            : Colors.grey.shade500,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: 18,
-                                  color: textSecondary,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 4,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('Jam Jadwal', textPrimary),
-                        const SizedBox(height: 8),
-                        InkWell(
-                          onTap: _pilihJam,
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            height: 48,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              color: fieldFillColor,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: borderColor),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    _selectedTime != null
-                                        ? _formatJam(_selectedTime!)
-                                        : 'Pilih Jam',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: _selectedTime != null
-                                          ? textPrimary
-                                          : Colors.grey.shade500,
-                                    ),
+                                  Icon(
+                                    Icons.access_time_rounded,
+                                    size: 18,
+                                    color: textSecondary,
                                   ),
-                                ),
-                                Icon(
-                                  Icons.access_time_rounded,
-                                  size: 18,
-                                  color: textSecondary,
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Jenis Perawatan
-              _buildLabel('Jenis Perawatan', textPrimary),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  color: fieldFillColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: borderColor),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedJenisPerawatan,
-                    isExpanded: true,
-                    dropdownColor: fieldFillColor,
-                    icon: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: textSecondary,
-                    ),
-                    hint: Text(
-                      'Pilih jenis perawatan',
-                      style: TextStyle(
-                        color: Colors.grey.shade500,
-                        fontSize: 13.5,
+                        ],
                       ),
                     ),
-                    items: _jenisPerawatanList.map((jenis) {
-                      return DropdownMenuItem<String>(
-                        value: jenis,
-                        child: Text(
-                          jenis,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: textPrimary,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (val) =>
-                        setState(() => _selectedJenisPerawatan = val),
-                  ),
+                  ],
                 ),
-              ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Estimasi Biaya Perawatan
-              _buildLabel('Estimasi Biaya Perawatan', textPrimary),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _estimasiBiayaController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                onChanged: _onBiayaChanged,
-                style: TextStyle(fontSize: 14, color: textPrimary),
-                decoration: _inputDecoration(
-                  '00000',
-                  fillColor: fieldFillColor,
-                  borderColor: borderColor,
-                ).copyWith(
-                  prefixIcon: Padding(
-                    padding: const EdgeInsets.only(left: 14, right: 4),
-                    child: Text(
-                      'Rp',
-                      style: TextStyle(
-                        fontSize: 14,
+                // Jenis Perawatan
+                _buildLabel('Jenis Perawatan', textPrimary),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: fieldFillColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedJenisPerawatan,
+                      isExpanded: true,
+                      dropdownColor: fieldFillColor,
+                      icon: Icon(
+                        Icons.keyboard_arrow_down_rounded,
                         color: textSecondary,
-                        fontWeight: FontWeight.w500,
+                      ),
+                      hint: Text(
+                        'Pilih jenis perawatan',
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                      items: _jenisPerawatanList.map((jenis) {
+                        return DropdownMenuItem<String>(
+                          value: jenis,
+                          child: Text(
+                            jenis,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: textPrimary,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) =>
+                          setState(() => _selectedJenisPerawatan = val),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Estimasi Biaya Perawatan
+                _buildLabel('Estimasi Biaya Perawatan', textPrimary),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _estimasiBiayaController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  onChanged: _onBiayaChanged,
+                  style: TextStyle(fontSize: 14, color: textPrimary),
+                  decoration: _inputDecoration(
+                    '00000',
+                    fillColor: fieldFillColor,
+                    borderColor: borderColor,
+                  ).copyWith(
+                    prefixIcon: Padding(
+                      padding: const EdgeInsets.only(left: 14, right: 4),
+                      child: Text(
+                        'Rp',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                  ),
-                  prefixIconConstraints: const BoxConstraints(
-                    minWidth: 0,
-                    minHeight: 0,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Catatan Tambahan
-              _buildLabel('Catatan Tambahan (Opsional)', textPrimary),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _catatanController,
-                maxLines: 3,
-                style: TextStyle(fontSize: 14, color: textPrimary),
-                decoration: _inputDecoration(
-                  'Masukkan Catatan Tambahan (opsional)...',
-                  fillColor: fieldFillColor,
-                  borderColor: borderColor,
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // Tombol Tambah Jadwal
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _simpanJadwal,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryBlue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 0,
+                      minHeight: 0,
                     ),
-                    elevation: 0,
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2.5,
-                          ),
-                        )
-                      : Text(
-                          'Tambah Jadwal',
-                          style: GoogleFonts.montserrat(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 16),
+
+                // Catatan Tambahan
+                _buildLabel('Catatan Tambahan (Opsional)', textPrimary),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _catatanController,
+                  maxLines: 3,
+                  style: TextStyle(fontSize: 14, color: textPrimary),
+                  decoration: _inputDecoration(
+                    'Masukkan Catatan Tambahan (opsional)...',
+                    fillColor: fieldFillColor,
+                    borderColor: borderColor,
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Tombol Tambah Jadwal
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _simpanJadwal,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryBlue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Text(
+                            'Tambah Jadwal',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

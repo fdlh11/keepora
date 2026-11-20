@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +12,9 @@ import '../main.dart';
 import '../services/asset_service.dart';
 import '../services/auth_service.dart';
 import '../utils/top_notif.dart';
+import 'edit_profile_screen.dart';
 import 'login_screen.dart';
+import 'ubah_password_screen.dart';
 
 class AkunScreen extends StatefulWidget {
   const AkunScreen({super.key});
@@ -81,34 +85,103 @@ class _AkunScreenState extends State<AkunScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bool? shouldLogout = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text(
-          'Keluar Akun',
-          style: GoogleFonts.montserrat(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Logout Akun',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.montserrat(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Apakah Anda yakin untuk Logout? Anda harus Login kembali jika ingin masuk kembali ke Akun ini.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF004AAD),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Ya, Logout',
+                            maxLines: 1,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: isDark
+                              ? const Color(0xFF60A5FA)
+                              : const Color(0xFF004AAD),
+                          side: const BorderSide(
+                            color: Color(0xFF64A1F4),
+                            width: 1.2,
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'Batal',
+                          maxLines: 1,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        content: const Text(
-          'Apakah Anda yakin ingin keluar dari akun Keepora?',
-          style: TextStyle(fontSize: 13.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF004AAD),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Keluar'),
-          ),
-        ],
       ),
     );
 
@@ -124,239 +197,66 @@ class _AkunScreenState extends State<AkunScreen> {
     }
   }
 
-  Future<void> _showEditProfileDialog(String currentName) async {
-    final nameController = TextEditingController(text: currentName);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    bool isSaving = false;
-
-    await showDialog(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: Text(
-            'Edit Profile',
-            style: GoogleFonts.montserrat(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Nama Lengkap',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    hintText: 'Masukkan nama lengkap...',
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: isSaving
-                  ? null
-                  : () async {
-                      final newName = nameController.text.trim();
-                      if (newName.isEmpty) return;
-
-                      setDialogState(() => isSaving = true);
-                      try {
-                        final user = _auth.currentUser;
-                        if (user != null) {
-                          await user.updateDisplayName(newName);
-                          await _firestore.collection('users').doc(user.uid).set(
-                            {
-                              'name': newName,
-                              'updatedAt': FieldValue.serverTimestamp(),
-                            },
-                            SetOptions(merge: true),
-                          );
-                        }
-                        if (dialogContext.mounted) Navigator.pop(dialogContext);
-                        if (mounted) {
-                          setState(() {});
-                          showTopNotif(
-                            this.context,
-                            'Profil berhasil diperbarui.',
-                          );
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          showTopNotif(
-                            this.context,
-                            'Gagal memperbarui profil: $e',
-                            isError: true,
-                          );
-                        }
-                      } finally {
-                        if (dialogContext.mounted) {
-                          setDialogState(() => isSaving = false);
-                        }
-                      }
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF004AAD),
-                foregroundColor: Colors.white,
-              ),
-              child: isSaving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Text('Simpan'),
-            ),
-          ],
+  Future<void> _openEditProfileScreen({
+    required String currentName,
+    required String currentBirthDate,
+    required String currentPhotoUrl,
+    required String email,
+  }) async {
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditProfilScreen(
+          initialName: currentName,
+          initialBirthDate: currentBirthDate,
+          initialPhotoUrl: currentPhotoUrl,
+          email: email,
         ),
       ),
     );
+
+    if (updated == true && mounted) {
+      setState(() {});
+    }
   }
 
-  Future<void> _showChangePasswordDialog() async {
-    final newPassController = TextEditingController();
-    final confirmPassController = TextEditingController();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    bool isSaving = false;
+  void _openChangePasswordScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const UbahPasswordScreen()),
+    );
+  }
 
-    await showDialog(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: Text(
-            'Ubah Password',
-            style: GoogleFonts.montserrat(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: newPassController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'Password Baru (min. 6 karakter)',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: confirmPassController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'Konfirmasi Password Baru',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: isSaving
-                  ? null
-                  : () async {
-                      final pass = newPassController.text.trim();
-                      final confirm = confirmPassController.text.trim();
-                      if (pass.length < 6) {
-                        showTopNotif(
-                          this.context,
-                          'Password minimal 6 karakter.',
-                          isError: true,
-                        );
-                        return;
-                      }
-                      if (pass != confirm) {
-                        showTopNotif(
-                          this.context,
-                          'Konfirmasi password tidak cocok.',
-                          isError: true,
-                        );
-                        return;
-                      }
+  Widget _buildProfileAvatar(String photoUrl) {
+    if (photoUrl.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
-                      setDialogState(() => isSaving = true);
-                      try {
-                        await _auth.currentUser?.updatePassword(pass);
-                        if (dialogContext.mounted) Navigator.pop(dialogContext);
-                        if (mounted) {
-                          showTopNotif(
-                            this.context,
-                            'Password berhasil diperbarui.',
-                          );
-                        }
-                      } on FirebaseAuthException catch (e) {
-                        if (mounted) {
-                          showTopNotif(
-                            this.context,
-                            e.code == 'requires-recent-login'
-                                ? 'Silakan login ulang terlebih dahulu untuk mengubah password.'
-                                : 'Gagal mengubah password: ${e.message}',
-                            isError: true,
-                          );
-                        }
-                      } finally {
-                        if (dialogContext.mounted) {
-                          setDialogState(() => isSaving = false);
-                        }
-                      }
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF004AAD),
-                foregroundColor: Colors.white,
-              ),
-              child: isSaving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Text('Perbarui'),
-            ),
-          ],
-        ),
+    if (photoUrl.startsWith('data:image')) {
+      try {
+        final base64Part = photoUrl.split(',').last;
+        final bytes = base64Decode(base64Part);
+        return ClipOval(
+          child: Image.memory(
+            bytes,
+            width: 78,
+            height: 78,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          ),
+        );
+      } catch (_) {
+        return const SizedBox.shrink();
+      }
+    }
+
+    return ClipOval(
+      child: Image.network(
+        photoUrl,
+        width: 78,
+        height: 78,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
       ),
     );
   }
@@ -658,6 +558,8 @@ class _AkunScreenState extends State<AkunScreen> {
                   snapshot.data?.data() as Map<String, dynamic>? ?? {};
               final displayName =
                   (userData['name'] ?? fallbackName).toString();
+              final birthDate = (userData['birthDate'] ?? '').toString();
+              final photoUrl = (userData['photoUrl'] ?? '').toString();
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
@@ -683,6 +585,7 @@ class _AkunScreenState extends State<AkunScreen> {
                               color: Color(0xFFD1D5DB),
                               shape: BoxShape.circle,
                             ),
+                            child: _buildProfileAvatar(photoUrl),
                           ),
                           const SizedBox(width: 18),
                           Expanded(
@@ -711,8 +614,12 @@ class _AkunScreenState extends State<AkunScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 InkWell(
-                                  onTap: () =>
-                                      _showEditProfileDialog(displayName),
+                                  onTap: () => _openEditProfileScreen(
+                                    currentName: displayName,
+                                    currentBirthDate: birthDate,
+                                    currentPhotoUrl: photoUrl,
+                                    email: email,
+                                  ),
                                   borderRadius: BorderRadius.circular(6),
                                   child: Padding(
                                     padding:
@@ -815,7 +722,7 @@ class _AkunScreenState extends State<AkunScreen> {
                       cardBgColor: cardBgColor,
                       borderColor: borderColor,
                       textColor: itemTextColor,
-                      onTap: _showChangePasswordDialog,
+                      onTap: _openChangePasswordScreen,
                       trailing: Icon(
                         Icons.chevron_right_rounded,
                         color: itemTextColor,
