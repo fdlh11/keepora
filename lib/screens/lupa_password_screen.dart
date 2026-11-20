@@ -5,16 +5,27 @@ import '../services/otp_service.dart';
 import '../utils/top_notif.dart';
 
 class LupaPasswordScreen extends StatefulWidget {
-  const LupaPasswordScreen({super.key});
+  final String? initialEmail;
+
+  const LupaPasswordScreen({
+    super.key,
+    this.initialEmail,
+  });
 
   @override
   State<LupaPasswordScreen> createState() => _LupaPasswordScreenState();
 }
 
 class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
-  final TextEditingController _emailController = TextEditingController();
+  late final TextEditingController _emailController;
   final OtpService _otpService = OtpService();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.initialEmail ?? '');
+  }
 
   void _handleSendReset() async {
     final email = _emailController.text.trim();

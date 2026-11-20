@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../utils/top_notif.dart';
+import 'lupa_password_screen.dart';
 
 class UbahPasswordScreen extends StatefulWidget {
   const UbahPasswordScreen({super.key});
@@ -152,141 +153,14 @@ class _UbahPasswordScreenState extends State<UbahPasswordScreen> {
     }
   }
 
-  Future<void> _confirmResetPassword() async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bool? shouldSend = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Reset Password?',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.montserrat(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Link ulang password akan dikirimkan ke alamat email akun Anda. Apakah Anda ingin melanjutkan?',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isDark ? Colors.white70 : Colors.black87,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 44,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(dialogContext, true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF004AAD),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: const FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            'Kirim Link',
-                            maxLines: 1,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: SizedBox(
-                      height: 44,
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(dialogContext, false),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: isDark
-                              ? const Color(0xFF60A5FA)
-                              : const Color(0xFF004AAD),
-                          side: const BorderSide(
-                            color: Color(0xFF64A1F4),
-                            width: 1.2,
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: const Text(
-                          'Batal',
-                          maxLines: 1,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+  void _openForgotPasswordFlow() {
+    final currentEmail = _auth.currentUser?.email ?? '';
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LupaPasswordScreen(initialEmail: currentEmail),
       ),
     );
-
-    if (shouldSend != true) return;
-
-    final email = _auth.currentUser?.email;
-    if (email == null || email.isEmpty) {
-      if (mounted) {
-        showTopNotif(
-          context,
-          'Alamat email akun tidak ditemukan.',
-          isError: true,
-        );
-      }
-      return;
-    }
-
-    try {
-      await _auth.sendPasswordResetEmail(email: email);
-      if (mounted) {
-        showTopNotif(
-          context,
-          'Link reset password telah dikirim ke $email.',
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        showTopNotif(
-          context,
-          'Gagal mengirim link reset password: ${e.message}',
-          isError: true,
-        );
-      }
-    }
   }
 
   bool _isValidNewPassword(String pass) {
@@ -303,7 +177,11 @@ class _UbahPasswordScreenState extends State<UbahPasswordScreen> {
     final confirmPass = _confirmPasswordController.text.trim();
 
     if (oldPass.isEmpty) {
-      showTopNotif(context, 'Masukkan password lama terlebih dahulu.', isError: true);
+      showTopNotif(
+        context,
+        'Masukkan password lama terlebih dahulu.',
+        isError: true,
+      );
       return;
     }
     if (!_isValidNewPassword(newPass)) {
@@ -471,7 +349,7 @@ class _UbahPasswordScreenState extends State<UbahPasswordScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: GestureDetector(
-                    onTap: _isSaving ? null : _confirmResetPassword,
+                    onTap: _isSaving ? null : _openForgotPasswordFlow,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2),
                       child: Text(
