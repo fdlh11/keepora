@@ -24,7 +24,6 @@ class _AkunScreenState extends State<AkunScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-   
   // Button Logout
   Future<void> _confirmLogout() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -78,7 +77,6 @@ class _AkunScreenState extends State<AkunScreen> {
                         ),
                         child: const FittedBox(
                           fit: BoxFit.scaleDown,
-                          // Button Confirm Logout
                           child: Text(
                             'Ya, Logout',
                             maxLines: 1,
@@ -111,7 +109,6 @@ class _AkunScreenState extends State<AkunScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        // Button Cancel Logout
                         child: const Text(
                           'Batal',
                           maxLines: 1,
@@ -340,7 +337,6 @@ class _AkunScreenState extends State<AkunScreen> {
                                         const EdgeInsets.symmetric(vertical: 2),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
-                                      // Button edit profile
                                       children: [
                                         Text(
                                           'Edit Profile',
@@ -352,7 +348,6 @@ class _AkunScreenState extends State<AkunScreen> {
                                           ),
                                         ),
                                         const SizedBox(width: 6),
-                                        // Icon edit profile
                                         const Icon(
                                           Icons.edit_outlined,
                                           size: 15,
@@ -413,7 +408,7 @@ class _AkunScreenState extends State<AkunScreen> {
                         height: 28,
                         child: Switch(
                           value: isDark,
-                          activeColor: Colors.white,
+                          activeThumbColor: Colors.white,
                           activeTrackColor: primaryBlue,
                           onChanged: (value) => setAppTheme(value),
                         ),
@@ -461,7 +456,6 @@ class _AkunScreenState extends State<AkunScreen> {
                         ),
                         child: Row(
                           children: [
-                            // Icon Logout
                             const Icon(
                               Icons.logout_rounded,
                               color: Color(0xFFEF4444),
@@ -473,7 +467,6 @@ class _AkunScreenState extends State<AkunScreen> {
                               style: GoogleFonts.montserrat(
                                 fontSize: 14.5,
                                 fontWeight: FontWeight.bold,
-                                // Warna logout 
                                 color: const Color(0xFFEF4444),
                               ),
                             ),
