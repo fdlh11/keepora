@@ -29,7 +29,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
 
   bool _isInitialized = false;
   bool _isSaving = false;
-  bool _isEditingName = false;
 
   String _selectedCategory = 'Umum';
   String _purchaseDate = '';
@@ -72,13 +71,12 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
   void initState() {
     super.initState();
     _nameFocusNode.addListener(() {
-      if (!_nameFocusNode.hasFocus && _isEditingName && mounted) {
-        setState(() {
-          if (_nameController.text.trim().isEmpty) {
+      if (!_nameFocusNode.hasFocus && mounted) {
+        if (_nameController.text.trim().isEmpty) {
+          setState(() {
             _nameController.text = _initialName;
-          }
-          _isEditingName = false;
-        });
+          });
+        }
       }
     });
   }
@@ -341,10 +339,8 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
       return;
     }
 
-    setState(() {
-      _isSaving = true;
-      _isEditingName = false;
-    });
+    _nameFocusNode.unfocus();
+    setState(() => _isSaving = true);
 
     try {
       final rawPriceDigits = _extractDigits(_purchasePriceController.text);
@@ -628,88 +624,82 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Expanded(
-                              child: _isEditingName
-                                  ? TextField(
-                                      controller: _nameController,
-                                      focusNode: _nameFocusNode,
-                                      autofocus: true,
-                                      textInputAction: TextInputAction.done,
-                                      onSubmitted: (_) {
-                                        setState(() {
-                                          if (_nameController.text
-                                              .trim()
-                                              .isEmpty) {
-                                            _nameController.text =
-                                                _initialName;
-                                          }
-                                          _isEditingName = false;
-                                        });
-                                      },
-                                      style: GoogleFonts.montserrat(
-                                        fontSize: 18.5,
-                                        fontWeight: FontWeight.bold,
-                                        color: textPrimary,
-                                      ),
-                                      decoration: const InputDecoration(
-                                        isDense: true,
-                                        contentPadding:
-                                            EdgeInsets.symmetric(vertical: 4),
-                                        border: UnderlineInputBorder(
-                                          borderSide: BorderSide(
-                                            color: primaryBlue,
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        focusedBorder: UnderlineInputBorder(
-                                          borderSide: BorderSide(
-                                            color: primaryBlue,
-                                            width: 1.8,
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  : GestureDetector(
-                                      onTap: _isSaving
-                                          ? null
-                                          : () {
-                                              setState(() {
-                                                _isEditingName = true;
-                                              });
-                                            },
-                                      child: Text(
-                                        _nameController.text,
-                                        style: GoogleFonts.montserrat(
-                                          fontSize: 18.5,
-                                          fontWeight: FontWeight.bold,
-                                          color: textPrimary,
-                                        ),
-                                      ),
-                                    ),
-                            ),
-                            const SizedBox(width: 10),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? const Color(0xFF172554)
-                                    : const Color(0xFFDBEAFE),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: isDark
-                                      ? const Color(0xFF1D4ED8)
-                                      : const Color(0xFF93C5FD),
+                              child: TextField(
+                                controller: _nameController,
+                                focusNode: _nameFocusNode,
+                                enabled: !_isSaving,
+                                maxLines: null,
+                                textInputAction: TextInputAction.done,
+                                onSubmitted: (_) => _nameFocusNode.unfocus(),
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 18.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: textPrimary,
+                                ),
+                                decoration: const InputDecoration(
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  disabledBorder: InputBorder.none,
                                 ),
                               ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedCategory,
-                                  isDense: true,
-                                  icon: const SizedBox.shrink(),
-                                  dropdownColor: surfaceColor,
-                                  borderRadius: BorderRadius.circular(14),
+                            ),
+                            const SizedBox(width: 10),
+                            PopupMenuButton<String>(
+                              enabled: !_isSaving,
+                              color: surfaceColor,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              onSelected: (newValue) {
+                                setState(() {
+                                  _selectedCategory = newValue;
+                                });
+                              },
+                              itemBuilder: (context) {
+                                return categoryOptions.map((cat) {
+                                  return PopupMenuItem<String>(
+                                    value: cat,
+                                    height: 40,
+                                    child: Text(
+                                      cat,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: cat == _selectedCategory
+                                            ? FontWeight.bold
+                                            : FontWeight.w500,
+                                        color: cat == _selectedCategory
+                                            ? (isDark
+                                                ? const Color(0xFF60A5FA)
+                                                : primaryBlue)
+                                            : (isDark
+                                                ? Colors.white
+                                                : Colors.black87),
+                                      ),
+                                    ),
+                                  );
+                                }).toList();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF172554)
+                                      : const Color(0xFFDBEAFE),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? const Color(0xFF1D4ED8)
+                                        : const Color(0xFF93C5FD),
+                                  ),
+                                ),
+                                child: Text(
+                                  _selectedCategory,
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -717,48 +707,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                                         ? const Color(0xFF60A5FA)
                                         : primaryBlue,
                                   ),
-                                  selectedItemBuilder: (context) {
-                                    return categoryOptions.map((cat) {
-                                      return Center(
-                                        child: Text(
-                                          cat,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDark
-                                                ? const Color(0xFF60A5FA)
-                                                : primaryBlue,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList();
-                                  },
-                                  items: categoryOptions.map((cat) {
-                                    return DropdownMenuItem<String>(
-                                      value: cat,
-                                      child: Text(
-                                        cat,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: cat == _selectedCategory
-                                              ? FontWeight.bold
-                                              : FontWeight.w500,
-                                          color: isDark
-                                              ? Colors.white
-                                              : Colors.black87,
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
-                                  onChanged: _isSaving
-                                      ? null
-                                      : (newValue) {
-                                          if (newValue != null) {
-                                            setState(() {
-                                              _selectedCategory = newValue;
-                                            });
-                                          }
-                                        },
                                 ),
                               ),
                             ),
