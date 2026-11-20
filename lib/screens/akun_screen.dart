@@ -492,7 +492,7 @@ class _AkunScreenState extends State<AkunScreen> {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
-                  'Dokumen otomatis dari aplikasi Keepora',
+                  'Laporan Riwayat Perawatan - Keepora',
                   style: const pw.TextStyle(
                     fontSize: 8.5,
                     color: PdfColors.grey600,
