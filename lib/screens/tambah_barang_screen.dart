@@ -257,8 +257,8 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final dialogBg = isDark ? theme.colorScheme.surface : Colors.white;
-    final textPrimary = theme.colorScheme.onSurface;
+    final dialogBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textPrimary = isDark ? Colors.white : Colors.black;
 
     final bool? shouldLeave = await showDialog<bool>(
       context: context,
@@ -282,11 +282,11 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Anda sedang mengisi barang baru. Data yang sudah diisi akan hilang jika Anda keluar.',
+                'Anda memiliki perubahan yang belum disimpan,\nApakah Anda yakin ingin keluar tanpa menyimpan?',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
-                  color: isDark ? Colors.grey.shade300 : Colors.black87,
+                  color: isDark ? Colors.white70 : Colors.black87,
                   height: 1.4,
                 ),
               ),
@@ -306,7 +306,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                         ),
                       ),
                       child: const Text(
-                        'Lanjutkan Mengisi',
+                        'Lanjutkan Mengedit',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -320,7 +320,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                       onPressed: () => Navigator.pop(dialogContext, true),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: isDark
-                            ? const Color(0xFF93C5FD)
+                            ? const Color(0xFF60A5FA)
                             : const Color(0xFF004AAD),
                         side: const BorderSide(
                           color: Color(0xFF64A1F4),
