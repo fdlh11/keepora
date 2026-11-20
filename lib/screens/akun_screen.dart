@@ -438,7 +438,7 @@ class _AkunScreenState extends State<AkunScreen> {
                         ),
                         pw.SizedBox(height: 4),
                         pw.Text(
-                          'Keepora - Manajemen Inventaris & Perawatan Barang',
+                          'Keepora - Pencatatan Riwayat Perawatan & Perbaikan Barang Pribadi',
                           style: const pw.TextStyle(
                             color: PdfColors.white,
                             fontSize: 9.5,
