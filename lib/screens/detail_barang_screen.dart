@@ -189,6 +189,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         child: Padding(
@@ -200,14 +201,14 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                 'Perubahan Belum Disimpan',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.montserrat(
-                  fontSize: 19,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: isDark ? Colors.white : Colors.black,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                'Anda memiliki perubahan yang belum disimpan,\nApakah Anda yakin ingin keluar tanpa menyimpan?',
+                'Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar tanpa menyimpan?',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
@@ -219,48 +220,61 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(dialogContext, false),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF004AAD),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      height: 44,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF004AAD),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
-                      ),
-                      child: const Text(
-                        'Lanjutkan Mengedit',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                        child: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Lanjutkan Mengedit',
+                            maxLines: 1,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(dialogContext, true),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: isDark
-                            ? const Color(0xFF60A5FA)
-                            : const Color(0xFF004AAD),
-                        side: const BorderSide(
-                          color: Color(0xFF64A1F4),
-                          width: 1.2,
+                    child: SizedBox(
+                      height: 44,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: isDark
+                              ? const Color(0xFF60A5FA)
+                              : const Color(0xFF004AAD),
+                          side: const BorderSide(
+                            color: Color(0xFF64A1F4),
+                            width: 1.2,
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: const Text(
-                        'Keluar',
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600,
+                        child: const Text(
+                          'Keluar',
+                          maxLines: 1,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -284,6 +298,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         child: Padding(
@@ -295,14 +310,14 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                 'Hapus Barang',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.montserrat(
-                  fontSize: 19,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: isDark ? Colors.white : Colors.black,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                'Apakah Anda ingin menghapus barang ini dari daftar?\nSemua riwayat perawatan juga akan terhapus.',
+                'Apakah Anda ingin menghapus barang ini dari daftar? Semua riwayat perawatan juga akan terhapus.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
@@ -314,48 +329,58 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(dialogContext, true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF004AAD),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      height: 44,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF004AAD),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
-                      ),
-                      child: const Text(
-                        'Ya, Hapus',
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600,
+                        child: const Text(
+                          'Ya, Hapus',
+                          maxLines: 1,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(dialogContext, false),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: isDark
-                            ? const Color(0xFF60A5FA)
-                            : const Color(0xFF004AAD),
-                        side: const BorderSide(
-                          color: Color(0xFF64A1F4),
-                          width: 1.2,
+                    child: SizedBox(
+                      height: 44,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: isDark
+                              ? const Color(0xFF60A5FA)
+                              : const Color(0xFF004AAD),
+                          side: const BorderSide(
+                            color: Color(0xFF64A1F4),
+                            width: 1.2,
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: const Text(
-                        'Batal',
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600,
+                        child: const Text(
+                          'Batal',
+                          maxLines: 1,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
