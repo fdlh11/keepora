@@ -16,17 +16,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     {
       'image': 'assets/image/ob1.png',
       'title': 'Pantau Perawatan Barang',
-      'subtitle': 'Mencatat dan memantau riwayat perawatan rutin barang pribadi Anda dengan mudah.',
+      'subtitle':
+          'Mencatat dan memantau riwayat perawatan rutin barang pribadi Anda dengan mudah.',
     },
     {
       'image': 'assets/image/ob2.png',
       'title': 'Jangan Lewatkan Jadwal',
-      'subtitle': 'Dapatkan pengingat tepat waktu untuk perawatan laptop, kendaraan, atau barang pribadi Anda.',
+      'subtitle':
+          'Dapatkan pengingat tepat waktu untuk perawatan laptop, kendaraan, atau barang pribadi Anda.',
     },
     {
       'image': 'assets/image/ob3.png',
       'title': 'Atur Biaya Perawatan',
-      'subtitle': 'Pantau total biaya perawatan bulanan agar pengeluaran Anda tetap terkontrol.',
+      'subtitle':
+          'Pantau total biaya perawatan bulanan agar pengeluaran Anda tetap terkontrol.',
     },
   ];
 
@@ -50,9 +53,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF0056C6);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : Colors.white;
+    final titleColor = isDark ? Colors.white : Colors.black87;
+    final subtitleColor =
+        isDark ? Colors.grey.shade400 : Colors.black54;
+    final skipColor = isDark ? const Color(0xFF60A5FA) : primaryBlue;
+    final inactiveDotColor =
+        isDark ? Colors.grey.shade800 : Colors.grey.shade300;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -71,10 +82,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           onPressed: () {
                             Navigator.pushReplacementNamed(context, '/login');
                           },
-                          child: const Text(
+                          child: Text(
                             'Lewati',
                             style: TextStyle(
-                              color: primaryBlue,
+                              color: skipColor,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -114,7 +125,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           style: GoogleFonts.montserrat(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: titleColor,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -123,9 +134,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         Text(
                           item['subtitle']!,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: Colors.black54,
+                            color: subtitleColor,
                             height: 1.4,
                           ),
                         ),
@@ -148,7 +159,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   decoration: BoxDecoration(
                     color: _currentIndex == index
                         ? primaryBlue
-                        : Colors.grey.shade300,
+                        : inactiveDotColor,
                     borderRadius: BorderRadius.circular(4.0),
                   ),
                 );

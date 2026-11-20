@@ -74,13 +74,22 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF0056C6);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : Colors.white;
+    final textPrimary = isDark ? Colors.white : Colors.black87;
+    final textSecondary =
+        isDark ? Colors.grey.shade400 : Colors.black54;
+    final fieldFillColor =
+        isDark ? const Color(0xFF1E1E1E) : Colors.grey.shade200;
+    final hintColor = isDark ? Colors.grey.shade500 : Colors.black38;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: bgColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        scrolledUnderElevation: 0,
+        iconTheme: IconThemeData(color: textPrimary),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -92,10 +101,10 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
               Center(
                 child: Column(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.warning_amber_rounded,
                       size: 100,
-                      color: Colors.black87,
+                      color: textPrimary,
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -103,16 +112,16 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
                       style: GoogleFonts.montserrat(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: textPrimary,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
+                    Text(
                       'Masukkan email akun Anda untuk menerima kode OTP pemulihan password.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.black54,
+                        color: textSecondary,
                         height: 1.4,
                       ),
                     ),
@@ -120,10 +129,10 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
                 ),
               ),
               const SizedBox(height: 40),
-              const Text(
+              Text(
                 'Email',
                 style: TextStyle(
-                  color: Colors.black87,
+                  color: textPrimary,
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
@@ -133,15 +142,15 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 scrollPadding: const EdgeInsets.only(bottom: 140),
-                style: const TextStyle(color: Colors.black87),
+                style: TextStyle(color: textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Masukkan email Anda...',
-                  hintStyle: const TextStyle(
-                    color: Colors.black38,
+                  hintStyle: TextStyle(
+                    color: hintColor,
                     fontSize: 13,
                   ),
                   filled: true,
-                  fillColor: Colors.grey.shade200,
+                  fillColor: fieldFillColor,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,

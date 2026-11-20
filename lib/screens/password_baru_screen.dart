@@ -76,13 +76,23 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF0056C6);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : Colors.white;
+    final textPrimary = isDark ? Colors.white : Colors.black87;
+    final textSecondary =
+        isDark ? Colors.grey.shade400 : Colors.black54;
+    final fieldFillColor =
+        isDark ? const Color(0xFF1E1E1E) : Colors.grey.shade200;
+    final hintColor = isDark ? Colors.grey.shade500 : Colors.black38;
+    final iconColor = isDark ? Colors.grey.shade400 : Colors.black45;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: bgColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        scrolledUnderElevation: 0,
+        iconTheme: IconThemeData(color: textPrimary),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -94,10 +104,10 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
               Center(
                 child: Column(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.verified_outlined,
                       size: 80,
-                      color: Colors.black87,
+                      color: textPrimary,
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -105,16 +115,16 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
                       style: GoogleFonts.montserrat(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Buat password baru yang kuat dan mudah Anda ingat untuk akun Anda.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.black54,
+                        color: textSecondary,
                         height: 1.4,
                       ),
                     ),
@@ -122,12 +132,12 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
                 ),
               ),
               const SizedBox(height: 40),
-              const Text(
+              Text(
                 'Password Baru',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
-                  color: Colors.black87,
+                  color: textPrimary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -135,15 +145,15 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
                 controller: _passwordController,
                 obscureText: _obscureText,
                 scrollPadding: const EdgeInsets.only(bottom: 140),
-                style: const TextStyle(color: Colors.black87),
+                style: TextStyle(color: textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Masukkan password baru...',
-                  hintStyle: const TextStyle(
-                    color: Colors.black38,
+                  hintStyle: TextStyle(
+                    color: hintColor,
                     fontSize: 13,
                   ),
                   filled: true,
-                  fillColor: Colors.grey.shade200,
+                  fillColor: fieldFillColor,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
@@ -153,7 +163,7 @@ class _PasswordBaruScreenState extends State<PasswordBaruScreen> {
                       _obscureText
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: Colors.black45,
+                      color: iconColor,
                     ),
                     onPressed: () =>
                         setState(() => _obscureText = !_obscureText),

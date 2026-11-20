@@ -97,13 +97,22 @@ class _VerifOtpScreenState extends State<VerifOtpScreen> {
   @override
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF0056C6);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : Colors.white;
+    final textPrimary = isDark ? Colors.white : Colors.black87;
+    final textSecondary =
+        isDark ? Colors.grey.shade400 : Colors.black54;
+    final boxFillColor =
+        isDark ? const Color(0xFF1E1E1E) : Colors.grey.shade200;
+    final resendColor = isDark ? const Color(0xFF60A5FA) : primaryBlue;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: bgColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        scrolledUnderElevation: 0,
+        iconTheme: IconThemeData(color: textPrimary),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -115,10 +124,10 @@ class _VerifOtpScreenState extends State<VerifOtpScreen> {
               Center(
                 child: Column(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.chat_bubble_outline_rounded,
                       size: 80,
-                      color: Colors.black87,
+                      color: textPrimary,
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -126,16 +135,16 @@ class _VerifOtpScreenState extends State<VerifOtpScreen> {
                       style: GoogleFonts.montserrat(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Masukkan 6 digit kode OTP yang telah dikirimkan ke email Anda.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.black54,
+                        color: textSecondary,
                         height: 1.4,
                       ),
                     ),
@@ -143,12 +152,12 @@ class _VerifOtpScreenState extends State<VerifOtpScreen> {
                 ),
               ),
               const SizedBox(height: 40),
-              const Text(
+              Text(
                 'Masukkan Kode 6 digit OTP',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
-                  color: Colors.black87,
+                  color: textPrimary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -164,15 +173,15 @@ class _VerifOtpScreenState extends State<VerifOtpScreen> {
                       textAlign: TextAlign.center,
                       maxLength: 1,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: textPrimary,
                       ),
                       decoration: InputDecoration(
                         counterText: '',
                         filled: true,
-                        fillColor: Colors.grey.shade200,
+                        fillColor: boxFillColor,
                         contentPadding: EdgeInsets.zero,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -194,10 +203,10 @@ class _VerifOtpScreenState extends State<VerifOtpScreen> {
               Center(
                 child: GestureDetector(
                   onTap: _handleResend,
-                  child: const Text(
+                  child: Text(
                     'Tidak menerima kode? Kirim Ulang',
                     style: TextStyle(
-                      color: primaryBlue,
+                      color: resendColor,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
