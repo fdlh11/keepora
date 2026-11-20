@@ -264,6 +264,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         backgroundColor: dialogBg,
         child: Padding(
@@ -300,16 +301,25 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                         backgroundColor: const Color(0xFF004AAD),
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        minimumSize: const Size(0, 44),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 12,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: const Text(
-                        'Lanjutkan Mengedit',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                      child: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Lanjutkan Mengedit',
+                          maxLines: 1,
+                          softWrap: false,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -326,13 +336,19 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                           color: Color(0xFF64A1F4),
                           width: 1.2,
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        minimumSize: const Size(0, 44),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 12,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                       child: const Text(
                         'Keluar',
+                        maxLines: 1,
+                        softWrap: false,
                         style: TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w600,

@@ -168,21 +168,20 @@ class _RegisterScreenState extends State<RegisterScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(12),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  style: IconButton.styleFrom(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_rounded,
-                      color: Colors.white,
-                    ),
-                    tooltip: 'Kembali',
-                    onPressed: () => Navigator.pop(context),
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    color: Colors.white,
                   ),
+                  tooltip: 'Kembali',
+                  onPressed: () => Navigator.pop(context),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Center(
                   child: Image.asset(
                     'assets/image/logo.png',
