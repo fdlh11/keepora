@@ -24,6 +24,12 @@ class _NavbarScreenState extends State<NavbarScreen> {
     _currentIndex = widget.initialIndex;
   }
 
+  void _switchTab(int index) {
+    if (_currentIndex != index) {
+      setState(() => _currentIndex = index);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -34,11 +40,13 @@ class _NavbarScreenState extends State<NavbarScreen> {
     final navBorderColor =
         isDark ? Colors.grey.shade800 : const Color(0xFFC7D2FE);
 
-    final List<Widget> pages = const [
-      HomeScreen(),
-      JadwalScreen(),
-      RiwayatScreen(),
-      AkunScreen(),
+    final List<Widget> pages = [
+      HomeScreen(
+        onNavigateToJadwal: () => _switchTab(1),
+      ),
+      const JadwalScreen(),
+      const RiwayatScreen(),
+      const AkunScreen(),
     ];
 
     return Scaffold(
@@ -114,7 +122,7 @@ class _NavbarScreenState extends State<NavbarScreen> {
 
     return Expanded(
       child: InkWell(
-        onTap: () => setState(() => _currentIndex = index),
+        onTap: () => _switchTab(index),
         borderRadius: BorderRadius.circular(36),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
