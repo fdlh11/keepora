@@ -112,6 +112,41 @@ class _JadwalScreenState extends State<JadwalScreen> {
     }
   }
 
+  /// Logika warna dinamis berdasarkan kedekatan hari H:
+  /// - <= 10 hari (termasuk hari ini & terlewat): Merah
+  /// - 11 s/d 20 hari: Oranye
+  /// - >= 21 hari: Hijau
+  ({Color bg, Color text, Color border}) _getCountdownBadgeStyle(
+    DateTime scheduledAt,
+    bool isDark,
+  ) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final targetDay =
+        DateTime(scheduledAt.year, scheduledAt.month, scheduledAt.day);
+    final diffDays = targetDay.difference(today).inDays;
+
+    if (diffDays <= 3) {
+      return (
+        bg: isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2),
+        text: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626),
+        border: isDark ? const Color(0xFF991B1B) : const Color(0xFFFCA5A5),
+      );
+    } else if (diffDays <= 15) {
+      return (
+        bg: isDark ? const Color(0xFF452700) : const Color(0xFFFEF3C7),
+        text: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706),
+        border: isDark ? const Color(0xFFD97706) : const Color(0xFFFBBF24),
+      );
+    } else {
+      return (
+        bg: isDark ? const Color(0xFF052E16) : const Color(0xFFDCFCE7),
+        text: isDark ? const Color(0xFF86EFAC) : const Color(0xFF15803D),
+        border: isDark ? const Color(0xFF166534) : const Color(0xFF86EFAC),
+      );
+    }
+  }
+
   // Menghasilkan daftar minggu dalam 1 bulan dengan jumlah genap (kelipatan 2 minggu)
   List<List<DateTime>> _getMonthWeeks() {
     final firstDayOfMonth = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
@@ -591,8 +626,9 @@ class _JadwalScreenState extends State<JadwalScreen> {
                               data['scheduledAt'] as Timestamp?;
                           final DateTime scheduledAt =
                               ts?.toDate() ?? DateTime.now();
-                          final bool isOverdue =
-                              scheduledAt.isBefore(DateTime.now());
+
+                          final badgeStyle =
+                              _getCountdownBadgeStyle(scheduledAt, isDark);
 
                           return InkWell(
                             onTap: () {
@@ -654,28 +690,19 @@ class _JadwalScreenState extends State<JadwalScreen> {
                                           vertical: 4,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: isOverdue
-                                              ? (isDark
-                                                  ? const Color(0xFF450A0A)
-                                                  : const Color(0xFFFEE2E2))
-                                              : (isDark
-                                                  ? const Color(0xFF431407)
-                                                  : const Color(0xFFFFEDD5)),
+                                          color: badgeStyle.bg,
                                           borderRadius:
                                               BorderRadius.circular(20),
+                                          border: Border.all(
+                                            color: badgeStyle.border,
+                                          ),
                                         ),
                                         child: Text(
                                           _formatCountdownDanJam(scheduledAt),
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
-                                            color: isOverdue
-                                                ? (isDark
-                                                    ? const Color(0xFFFCA5A5)
-                                                    : const Color(0xFFDC2626))
-                                                : (isDark
-                                                    ? const Color(0xFFFDBA74)
-                                                    : const Color(0xFFEA580C)),
+                                            color: badgeStyle.text,
                                           ),
                                         ),
                                       ),

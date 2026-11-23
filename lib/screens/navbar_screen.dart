@@ -51,6 +51,7 @@ class _NavbarScreenState extends State<NavbarScreen> {
 
     return Scaffold(
       backgroundColor: bgColor,
+      resizeToAvoidBottomInset: false,
       extendBody: true,
       body: IndexedStack(
         index: _currentIndex,
