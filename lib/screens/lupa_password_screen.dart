@@ -117,7 +117,7 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Masukkan email akun Anda untuk menerima kode OTP pemulihan password.',
+                      'Masukkan Email akun Anda untuk menerima kode OTP pemulihan password.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
@@ -144,7 +144,7 @@ class _LupaPasswordScreenState extends State<LupaPasswordScreen> {
                 scrollPadding: const EdgeInsets.only(bottom: 140),
                 style: TextStyle(color: textPrimary),
                 decoration: InputDecoration(
-                  hintText: 'Masukkan email Anda...',
+                  hintText: 'Masukkan Email Anda...',
                   hintStyle: TextStyle(
                     color: hintColor,
                     fontSize: 13,

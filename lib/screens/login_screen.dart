@@ -155,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 textInputAction: TextInputAction.next,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'Masukkan email Anda...',
+                  hintText: 'Masukkan Email Anda...',
                   hintStyle: const TextStyle(
                     color: Colors.white54,
                     fontSize: 13,
