@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/asset_service.dart';
+import '../utils/top_notif.dart';
 
 class EditRiwayatScreen extends StatefulWidget {
   final String assetId;
@@ -40,7 +41,6 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
   late String _initialCostDigits;
   late String _initialNotes;
 
-  // list jenis perawatan
   final List<String> _jenisPerawatanOptions = const [
     'Perawatan',
     'Perbaikan',
@@ -49,7 +49,6 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
     'Pengecekan Rutin',
   ];
 
-  // list bulan
   static const List<String> _bulanIndo = [
     '',
     'Januari',
@@ -173,8 +172,6 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // button lanjut mengisi
               Row(
                 children: [
                   Expanded(
@@ -207,8 +204,6 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
-
-                  // button keluar
                   Expanded(
                     child: SizedBox(
                       height: 44,
@@ -322,12 +317,7 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
   Future<void> _simpanPerubahan() async {
     final namaJadwal = _namaJadwalController.text.trim();
     if (namaJadwal.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nama jadwal wajib diisi.'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      showTopNotif(context, 'Nama jadwal wajib diisi.', isError: true);
       return;
     }
 
@@ -357,19 +347,12 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
       );
 
       if (mounted) {
+        showTopNotif(context, 'Riwayat perawatan berhasil diperbarui.');
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Riwayat perawatan berhasil diperbarui.'),
-            backgroundColor: Color(0xFF004AAD),
-          ),
-        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memperbarui riwayat: $e')),
-        );
+        showTopNotif(context, 'Gagal memperbarui riwayat: $e', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -403,7 +386,6 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
           elevation: 0,
           scrolledUnderElevation: 0,
           centerTitle: true,
-          // icon back/kembali
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: textPrimary),
             onPressed: _isSaving ? null : _handleBackPress,
@@ -423,7 +405,6 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Nama Jadwal
                 _buildLabel('Nama Jadwal', textPrimary),
                 const SizedBox(height: 8),
                 TextField(
@@ -436,8 +417,6 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // Nama Barang
                 _buildLabel('Nama Barang', textPrimary),
                 const SizedBox(height: 8),
                 Container(
@@ -455,8 +434,6 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // Jenis Perawatan
                 _buildLabel('Jenis Perawatan', textPrimary),
                 const SizedBox(height: 8),
                 Container(
@@ -493,8 +470,6 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // Tanggal Perawatan & Jam Perawatan
                 Row(
                   children: [
                     Expanded(
@@ -567,8 +542,6 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-
-                // Biaya Perawatan
                 _buildLabel('Biaya Perawatan', textPrimary),
                 const SizedBox(height: 8),
                 TextField(
@@ -601,8 +574,6 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // Catatan Tambahan (Opsional)
                 _buildLabel('Catatan Tambahan (Opsional)', textPrimary),
                 const SizedBox(height: 8),
                 TextField(
@@ -616,8 +587,6 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                   ),
                 ),
                 const SizedBox(height: 44),
-
-                // Tombol Simpan Perubahan
                 SizedBox(
                   width: double.infinity,
                   height: 52,

@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../services/asset_service.dart';
+import '../utils/top_notif.dart';
 
 class TambahBarangScreen extends StatefulWidget {
   const TambahBarangScreen({super.key});
@@ -90,12 +91,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal mengambil foto: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        showTopNotif(context, 'Gagal mengambil foto: $e', isError: true);
       }
     }
   }
@@ -434,23 +430,19 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Silakan pilih kategori barang terlebih dahulu.'),
-          backgroundColor: Colors.redAccent,
-        ),
+      showTopNotif(
+        context,
+        'Silakan pilih kategori barang terlebih dahulu.',
+        isError: true,
       );
       return;
     }
 
     if (_purchaseDate == null && _secondHandPurchaseDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Silakan pilih Tanggal Beli (baru) atau Tanggal Pembelian (Barang Second).',
-          ),
-          backgroundColor: Colors.redAccent,
-        ),
+      showTopNotif(
+        context,
+        'Silakan pilih Tanggal Beli (baru) atau Tanggal Pembelian (Barang Second).',
+        isError: true,
       );
       return;
     }
@@ -489,37 +481,28 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Barang berhasil ditambahkan.'),
-            backgroundColor: Color(0xFF004AAD),
-          ),
-        );
+        showTopNotif(context, 'Barang berhasil ditambahkan.');
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal menyimpan barang: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        showTopNotif(context, 'Gagal menyimpan barang: $e', isError: true);
       }
     }
   }
 
   InputDecoration _inputDecoration(
     String hint, {
-    String? prefixText,
+    Widget? prefixIcon,
     required Color fillColor,
     required Color borderColor,
   }) {
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-      prefixText: prefixText,
+      prefixIcon: prefixIcon,
+      prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
       filled: true,
       fillColor: fillColor,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -599,7 +582,6 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 0. Kotak Unggah Foto Barang / Pratinjau Foto
                   InkWell(
                     onTap: _isSaving ? null : _showImageSourceSheet,
                     borderRadius: BorderRadius.circular(14),
@@ -692,8 +674,6 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-
-                  // 1. Nama Barang
                   Text(
                     'Nama Barang',
                     style: GoogleFonts.montserrat(
@@ -716,8 +696,6 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // 2. Pilih Kategori
                   Text(
                     'Pilih Kategori',
                     style: GoogleFonts.montserrat(
@@ -750,8 +728,6 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     onChanged: (val) => setState(() => _selectedCategory = val),
                   ),
                   const SizedBox(height: 16),
-
-                  // 3. Tanggal Beli (Baru) & Harga Beli
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -870,8 +846,21 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                                       ? 'Wajib diisi'
                                       : null,
                               decoration: _inputDecoration(
-                                'Harga beli...',
-                                prefixText: 'Rp ',
+                                '0',
+                                prefixIcon: Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 14,
+                                    right: 4,
+                                  ),
+                                  child: Text(
+                                    'Rp',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: textPrimary,
+                                    ),
+                                  ),
+                                ),
                                 fillColor: fieldFillColor,
                                 borderColor: borderColor,
                               ),
@@ -882,8 +871,6 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-
-                  // 4. Kondisi Barang
                   Text(
                     'Kondisi Barang',
                     style: GoogleFonts.montserrat(
@@ -906,8 +893,6 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // 5. Tanggal Pembelian (Barang Second)
                   Text(
                     'Tanggal Pembelian (Barang Second)',
                     style: GoogleFonts.montserrat(
@@ -981,8 +966,6 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // 6. Catatan Tambahan (Opsional)
                   Text(
                     'Catatan Tambahan (Opsional)',
                     style: GoogleFonts.montserrat(
@@ -1004,8 +987,6 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     ),
                   ),
                   const SizedBox(height: 28),
-
-                  // 7. Tombol Tambah Barang
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(

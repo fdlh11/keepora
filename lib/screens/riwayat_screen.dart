@@ -14,6 +14,7 @@ class RiwayatScreen extends StatefulWidget {
 
 class _RiwayatScreenState extends State<RiwayatScreen> {
   final AssetService _assetService = AssetService();
+  late final Stream<List<QueryDocumentSnapshot>> _historyStream;
 
   late DateTime _selectedMonthYear;
   String _selectedFilter = 'Semua';
@@ -64,6 +65,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     super.initState();
     final now = DateTime.now();
     _selectedMonthYear = DateTime(now.year, now.month);
+    _historyStream = _assetService.getAllMaintenanceHistoryStream();
   }
 
   List<DateTime> _generateMonthOptions(List<QueryDocumentSnapshot> docs) {
@@ -190,9 +192,10 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
         ),
       ),
       body: StreamBuilder<List<QueryDocumentSnapshot>>(
-        stream: _assetService.getAllMaintenanceHistoryStream(),
+        stream: _historyStream,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              !snapshot.hasData) {
             return const Center(
               child: CircularProgressIndicator(color: primaryBlue),
             );
@@ -349,7 +352,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               ),
               const SizedBox(height: 10),
 
-              // Filter Chips Horizontal Scrollable
+              // Filter Chips Horizontal Scrollable (Tanpa Blink / Splash Delay)
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -358,32 +361,38 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                     final isSelected = _selectedFilter == filter;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text(
-                          filter,
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.w500,
-                            color: isSelected ? Colors.white : textPrimary,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          if (_selectedFilter != filter) {
+                            setState(() => _selectedFilter = filter);
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected ? primaryBlue : cardColor,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected
+                                  ? primaryBlue
+                                  : chipBorderUnselected,
+                            ),
+                          ),
+                          child: Text(
+                            filter,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
+                              color: isSelected ? Colors.white : textPrimary,
+                            ),
                           ),
                         ),
-                        selected: isSelected,
-                        selectedColor: primaryBlue,
-                        backgroundColor: cardColor,
-                        side: BorderSide(
-                          color: isSelected
-                              ? primaryBlue
-                              : chipBorderUnselected,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        showCheckmark: false,
-                        onSelected: (_) {
-                          setState(() => _selectedFilter = filter);
-                        },
                       ),
                     );
                   }).toList(),

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/asset_service.dart';
+import '../utils/top_notif.dart';
 
 class DetailBarangScreen extends StatefulWidget {
   final String assetId;
@@ -239,7 +240,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                         ),
                         child: const FittedBox(
                           fit: BoxFit.scaleDown,
-                          // button lanjut edit
                           child: Text(
                             'Lanjutkan Mengedit',
                             maxLines: 1,
@@ -254,8 +254,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
-
-                  // button keluar
                   Expanded(
                     child: SizedBox(
                       height: 44,
@@ -334,8 +332,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // button konfirmasi hapus
               Row(
                 children: [
                   Expanded(
@@ -365,8 +361,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
-
-                  // button batal
                   Expanded(
                     child: SizedBox(
                       height: 44,
@@ -408,13 +402,8 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     if (confirmed == true && mounted) {
       await _assetService.deleteAsset(widget.assetId);
       if (mounted) {
+        showTopNotif(context, 'Barang berhasil dihapus.');
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Barang berhasil dihapus.'),
-            backgroundColor: Color(0xFF004AAD),
-          ),
-        );
       }
     }
   }
@@ -422,11 +411,10 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
   Future<void> _saveChanges(String purchaseType) async {
     final updatedName = _nameController.text.trim();
     if (updatedName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nama barang tidak boleh kosong.'),
-          backgroundColor: Colors.redAccent,
-        ),
+      showTopNotif(
+        context,
+        'Nama barang tidak boleh kosong.',
+        isError: true,
       );
       return;
     }
@@ -468,21 +456,15 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
 
       if (mounted) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Perubahan berhasil disimpan.'),
-            backgroundColor: Color(0xFF004AAD),
-          ),
-        );
+        showTopNotif(context, 'Perubahan berhasil disimpan.');
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal menyimpan perubahan: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
+        showTopNotif(
+          context,
+          'Gagal menyimpan perubahan: $e',
+          isError: true,
         );
       }
     }
@@ -669,12 +651,10 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
               elevation: 0,
               scrolledUnderElevation: 0,
               centerTitle: true,
-              // Icon back/kembali
               leading: IconButton(
                 icon: Icon(Icons.arrow_back, color: textPrimary),
                 onPressed: _isSaving ? null : _handleBackPress,
               ),
-              // icon detail barang
               title: Text(
                 'Detail Barang',
                 style: GoogleFonts.montserrat(
@@ -683,7 +663,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                   color: textPrimary,
                 ),
               ),
-              // icon hapus barang
               actions: [
                 IconButton(
                   tooltip: 'Hapus Barang',
@@ -709,7 +688,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                         : const Color(0xFFE5E7EB),
                     child: _buildAssetPhoto(photoUrl, isDark),
                   ),
-
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
                     child: Column(
@@ -808,8 +786,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                           ],
                         ),
                         const SizedBox(height: 18),
-
-                        // Informasi Pembelian - bisa diedit
                         Text(
                           'Informasi Pembelian',
                           style: GoogleFonts.montserrat(
@@ -838,8 +814,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 6),
-
-                                  // field pilih tanggal
                                   InkWell(
                                     onTap:
                                         _isSaving ? null : _pickPurchaseDate,
@@ -872,8 +846,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                                             ),
                                           ),
                                           const SizedBox(width: 6),
-
-                                          // icon kalender
                                           Icon(
                                             Icons.calendar_today_outlined,
                                             size: 16,
@@ -889,8 +861,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                               ),
                             ),
                             const SizedBox(width: 12),
-
-                            // field harga pembelian
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -934,8 +904,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                           ],
                         ),
                         const SizedBox(height: 18),
-
-                        // Kondisi Barang - Dapat diedit
                         Text(
                           'Kondisi Barang',
                           style: GoogleFonts.montserrat(
@@ -945,8 +913,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-
-                        // field kondisi abrang
                         TextField(
                           controller: _conditionController,
                           maxLines: 3,
@@ -962,8 +928,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                           ),
                         ),
                         const SizedBox(height: 18),
-
-                        // Catatan Perawatan Terakhir - ga bisa diedit/read only
                         Text(
                           'Catatan Perawatan Terakhir',
                           style: GoogleFonts.montserrat(
@@ -973,8 +937,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-
-                        // card tanggal perawatan terakhir
                         Row(
                           children: [
                             Expanded(
@@ -985,8 +947,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                               ),
                             ),
                             const SizedBox(width: 12),
-
-                            // card biaya perawatan terakhir
                             Expanded(
                               child: _infoCard(
                                 label: 'Biaya Perawatan Terakhir',
@@ -997,8 +957,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                           ],
                         ),
                         const SizedBox(height: 18),
-
-                        // Rincian Perawatan - dapat diedit
                         Text(
                           'Rincian Perawatan',
                           style: GoogleFonts.montserrat(
@@ -1008,8 +966,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-
-                        // field catatan perawatan
                         TextField(
                           controller: _maintenanceDetailController,
                           maxLines: 3,
@@ -1025,8 +981,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                           ),
                         ),
                         const SizedBox(height: 24),
-
-                        // button simpan perubahan
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -1075,7 +1029,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
   Widget _photoPlaceholder(bool isDark) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
-      // icon gambar foto
       children: [
         Icon(
           Icons.image_outlined,

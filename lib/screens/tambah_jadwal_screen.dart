@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/jadwal_service.dart';
+import '../utils/top_notif.dart';
 
 class TambahJadwalScreen extends StatefulWidget {
   const TambahJadwalScreen({super.key});
@@ -273,11 +274,10 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
         _selectedDate == null ||
         _selectedTime == null ||
         _selectedJenisPerawatan == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Harap lengkapi semua kolom wajib terlebih dahulu.'),
-          backgroundColor: Colors.redAccent,
-        ),
+      showTopNotif(
+        context,
+        'Harap lengkapi semua kolom wajib terlebih dahulu.',
+        isError: true,
       );
       return;
     }
@@ -288,13 +288,10 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
       _selectedDate!.day,
     );
     if (pickedDay.isBefore(_minScheduleDate)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Tanggal jadwal harus untuk masa mendatang (minimal besok).',
-          ),
-          backgroundColor: Colors.redAccent,
-        ),
+      showTopNotif(
+        context,
+        'Tanggal jadwal harus untuk masa mendatang (minimal besok).',
+        isError: true,
       );
       return;
     }
@@ -325,22 +322,12 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Jadwal perawatan berhasil ditambahkan.'),
-            backgroundColor: Color(0xFF004AAD),
-          ),
-        );
+        showTopNotif(context, 'Jadwal perawatan berhasil ditambahkan.');
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal menyimpan jadwal: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        showTopNotif(context, 'Gagal menyimpan jadwal: $e', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
