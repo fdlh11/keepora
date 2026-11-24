@@ -648,43 +648,6 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                Text(
-                  'Tanggal Lahir',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.bold,
-                    color: textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // field tanggal lahir
-                InkWell(
-                  onTap: _isSaving ? null : _pickBirthDate,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: double.infinity,
-                    height: 50,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: fieldBgColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: borderColor),
-                    ),
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      _birthDate.isEmpty ? 'Pilih tanggal lahir...' : _birthDate,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: _birthDate.isEmpty
-                            ? Colors.grey.shade500
-                            : textSecondary,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
                 
                 // field email
                 Text(
