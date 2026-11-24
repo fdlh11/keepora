@@ -265,12 +265,12 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
         actions: [
           IconButton(
             onPressed: _isProcessing ? null : _bukaHalamanEdit,
-            icon: Icon(Icons.edit_outlined, color: textPrimary),
+            icon: Icon(Icons.edit_outlined, color: Color(0xFF004AAD)),
             tooltip: 'Edit Jadwal',
           ),
           IconButton(
             onPressed: _isProcessing ? null : _konfirmasiHapus,
-            icon: Icon(Icons.delete_outline, color: textPrimary),
+            icon: Icon(Icons.delete_outline, color: Colors.red),
             tooltip: 'Hapus Jadwal',
           ),
           const SizedBox(width: 4),
@@ -604,7 +604,7 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                         child: const FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            'Lanjutkan Mengedit',
+                            'Lanjutkan Edit',
                             maxLines: 1,
                             textAlign: TextAlign.center,
                             style: TextStyle(

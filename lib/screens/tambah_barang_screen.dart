@@ -332,7 +332,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                       child: const FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          'Lanjutkan Mengedit',
+                          'Lanjutkan Edit',
                           maxLines: 1,
                           softWrap: false,
                           style: TextStyle(

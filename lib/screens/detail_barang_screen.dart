@@ -278,7 +278,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                         child: const FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            'Lanjutkan Mengedit',
+                            'Lanjutkan Edit',
                             maxLines: 1,
                             textAlign: TextAlign.center,
                             style: TextStyle(

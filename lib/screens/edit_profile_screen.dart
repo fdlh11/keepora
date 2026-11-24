@@ -277,7 +277,7 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
                         child: const FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            'Lanjutkan Mengedit',
+                            'Lanjutkan Edit',
                             maxLines: 1,
                             textAlign: TextAlign.center,
                             style: TextStyle(

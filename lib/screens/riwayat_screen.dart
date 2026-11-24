@@ -290,7 +290,8 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                     m.year == _selectedMonthYear.year &&
                                     m.month == _selectedMonthYear.month,
                               ),
-                              borderRadius: BorderRadius.circular(10),
+                              menuMaxHeight: 220, // Membatasi tinggi agar tidak nutup layar & bisa di-scroll
+                              borderRadius: BorderRadius.circular(12),
                               dropdownColor: primaryBlue,
                               icon: const Icon(
                                 Icons.keyboard_arrow_down_rounded,
@@ -353,7 +354,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               ),
               const SizedBox(height: 10),
 
-              // Filter Chips Horizontal Scrollable (Tanpa Blink / Splash Delay)
+              // Filter Chips Horizontal Scrollable
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
