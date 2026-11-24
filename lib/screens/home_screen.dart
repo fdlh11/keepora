@@ -991,7 +991,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           if (showConditionDetail) ...[
   const SizedBox(height: 3),
   Text(
-    'Ket : $conditionDetail',
+    conditionDetail,
     maxLines: 1,
     overflow: TextOverflow.ellipsis,
     style: TextStyle(

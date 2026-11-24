@@ -48,12 +48,20 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final baseTextTheme = GoogleFonts.robotoTextTheme().copyWith(
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final TextTheme _baseTextTheme;
+
+  @override
+  void initState() {
+    super.initState();
+    _baseTextTheme = GoogleFonts.robotoTextTheme().copyWith(
       displayLarge: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
       displayMedium: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
       displaySmall: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
@@ -63,15 +71,19 @@ class MyApp extends StatelessWidget {
       titleLarge: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
       titleMedium: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
     );
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: appThemeNotifier,
       builder: (context, currentMode, _) {
         return MaterialApp(
           themeMode: currentMode,
+          themeAnimationDuration: Duration.zero,
           theme: ThemeData(
             brightness: Brightness.light,
-            textTheme: baseTextTheme,
+            textTheme: _baseTextTheme,
             appBarTheme: AppBarTheme(
               backgroundColor: Colors.white,
               elevation: 0,
@@ -90,7 +102,7 @@ class MyApp extends StatelessWidget {
           ),
           darkTheme: ThemeData(
             brightness: Brightness.dark,
-            textTheme: baseTextTheme.apply(
+            textTheme: _baseTextTheme.apply(
               bodyColor: Colors.white,
               displayColor: Colors.white,
             ),

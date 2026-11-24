@@ -19,6 +19,7 @@ class DetailBarangScreen extends StatefulWidget {
 
 class _DetailBarangScreenState extends State<DetailBarangScreen> {
   final AssetService _assetService = AssetService();
+  late final Stream<QuerySnapshot> _assetsStream;
 
   final TextEditingController _nameController = TextEditingController();
   final FocusNode _nameFocusNode = FocusNode();
@@ -31,6 +32,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
 
   bool _isInitialized = false;
   bool _isSaving = false;
+  Map<String, dynamic>? _cachedAssetData;
 
   String _selectedCategory = 'Umum';
   String _selectedCondition = 'Bagus';
@@ -84,6 +86,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
   @override
   void initState() {
     super.initState();
+    _assetsStream = _assetService.getAssetsStream();
     _nameFocusNode.addListener(() {
       if (!_nameFocusNode.hasFocus && mounted) {
         if (_nameController.text.trim().isEmpty) {
@@ -443,6 +446,8 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
   }
 
   Future<void> _saveChanges(String purchaseType) async {
+    if (_isSaving) return;
+
     final updatedName = _nameController.text.trim();
     if (updatedName.isEmpty) {
       showTopNotif(
@@ -502,8 +507,8 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
       _initialMaintenanceDetail = updatedDetail;
 
       if (mounted) {
-        setState(() => _isSaving = false);
         showTopNotif(context, 'Perubahan berhasil disimpan.');
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
@@ -601,6 +606,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
         return Image.memory(
           bytes,
           fit: BoxFit.cover,
+          gaplessPlayback: true,
           errorBuilder: (_, _, _) => _photoPlaceholder(isDark),
         );
       } catch (_) {
@@ -611,6 +617,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     return Image.network(
       photoUrl,
       fit: BoxFit.cover,
+      gaplessPlayback: true,
       errorBuilder: (_, _, _) => _photoPlaceholder(isDark),
     );
   }
@@ -627,21 +634,24 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     final textPrimary = isDark ? Colors.white : Colors.black;
 
     return StreamBuilder<QuerySnapshot>(
-      stream: _assetService.getAssetsStream(),
+      stream: _assetsStream,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            backgroundColor: bgColor,
-            body: const Center(
-              child: CircularProgressIndicator(color: primaryBlue),
-            ),
-          );
-        }
-
         final docs = snapshot.data?.docs ?? [];
         final matched = docs.where((d) => d.id == widget.assetId).toList();
 
-        if (matched.isEmpty) {
+        if (matched.isNotEmpty) {
+          _cachedAssetData = matched.first.data() as Map<String, dynamic>? ?? {};
+        }
+
+        if (_cachedAssetData == null) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Scaffold(
+              backgroundColor: bgColor,
+              body: const Center(
+                child: CircularProgressIndicator(color: primaryBlue),
+              ),
+            );
+          }
           return Scaffold(
             backgroundColor: bgColor,
             appBar: AppBar(backgroundColor: bgColor),
@@ -649,7 +659,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
           );
         }
 
-        final data = matched.first.data() as Map<String, dynamic>? ?? {};
+        final data = _cachedAssetData!;
         final rawName = (data['name'] ?? '-').toString();
         final rawCategory = (data['category'] ?? 'Umum').toString();
         final photoUrl = (data['photoUrl'] ?? '').toString();

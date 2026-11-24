@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -23,6 +24,20 @@ class _AkunScreenState extends State<AkunScreen> {
   final AuthService _authService = AuthService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  late final Stream<DocumentSnapshot> _userStream;
+  Map<String, dynamic> _cachedUserData = {};
+  String _cachedPhotoStr = '';
+  Uint8List? _cachedAvatarBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = _auth.currentUser?.uid;
+    _userStream = uid != null
+        ? _firestore.collection('users').doc(uid).snapshots()
+        : const Stream.empty();
+  }
 
   // Button Logout
   Future<void> _confirmLogout() async {
@@ -192,21 +207,28 @@ class _AkunScreenState extends State<AkunScreen> {
     }
 
     if (photoUrl.startsWith('data:image')) {
-      try {
-        final base64Part = photoUrl.split(',').last;
-        final bytes = base64Decode(base64Part);
-        return ClipOval(
-          child: Image.memory(
-            bytes,
-            width: 78,
-            height: 78,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-          ),
-        );
-      } catch (_) {
-        return const SizedBox.shrink();
+      if (_cachedPhotoStr != photoUrl) {
+        _cachedPhotoStr = photoUrl;
+        try {
+          final base64Part = photoUrl.split(',').last;
+          _cachedAvatarBytes = base64Decode(base64Part);
+        } catch (_) {
+          _cachedAvatarBytes = null;
+        }
       }
+
+      if (_cachedAvatarBytes == null) return const SizedBox.shrink();
+
+      return ClipOval(
+        child: Image.memory(
+          _cachedAvatarBytes!,
+          width: 78,
+          height: 78,
+          fit: BoxFit.cover,
+          gaplessPlayback: true,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        ),
+      );
     }
 
     return ClipOval(
@@ -215,6 +237,7 @@ class _AkunScreenState extends State<AkunScreen> {
         width: 78,
         height: 78,
         fit: BoxFit.cover,
+        gaplessPlayback: true,
         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
       ),
     );
@@ -230,257 +253,253 @@ class _AkunScreenState extends State<AkunScreen> {
             : (user?.email?.split('@').first ?? 'Pengguna Keepora');
     final email = user?.email ?? '-';
 
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: appThemeNotifier,
-      builder: (context, themeMode, _) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final bgColor =
-            isDark ? const Color(0xFF121212) : const Color(0xFFF3F4F6);
-        final cardBgColor =
-            isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6);
-        final borderColor =
-            isDark ? Colors.grey.shade800 : Colors.grey.shade400;
-        final titleColor = isDark ? Colors.white : Colors.black87;
-        final itemTextColor = isDark ? Colors.white70 : Colors.black87;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor =
+        isDark ? const Color(0xFF121212) : const Color(0xFFF3F4F6);
+    final cardBgColor =
+        isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6);
+    final borderColor =
+        isDark ? Colors.grey.shade800 : Colors.grey.shade400;
+    final titleColor = isDark ? Colors.white : Colors.black87;
+    final itemTextColor = isDark ? Colors.white70 : Colors.black87;
 
-        return Scaffold(
-          backgroundColor: bgColor,
-          appBar: AppBar(
-            backgroundColor: bgColor,
-            elevation: 0,
-            scrolledUnderElevation: 0,
-            centerTitle: true,
-            automaticallyImplyLeading: false,
-            title: Text(
-              'Pengaturan Akun',
-              style: GoogleFonts.montserrat(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: titleColor,
-              ),
-            ),
+    return Scaffold(
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        backgroundColor: bgColor,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+        title: Text(
+          'Pengaturan Akun',
+          style: GoogleFonts.montserrat(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: titleColor,
           ),
-          body: StreamBuilder<DocumentSnapshot>(
-            stream: user != null
-                ? _firestore.collection('users').doc(user.uid).snapshots()
-                : const Stream.empty(),
-            builder: (context, snapshot) {
-              final userData =
-                  snapshot.data?.data() as Map<String, dynamic>? ?? {};
-              final displayName =
-                  (userData['name'] ?? fallbackName).toString();
-              final birthDate = (userData['birthDate'] ?? '').toString();
-              final photoUrl = (userData['photoUrl'] ?? '').toString();
+        ),
+      ),
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: _userStream,
+        builder: (context, snapshot) {
+          if (snapshot.hasData && snapshot.data?.data() != null) {
+            _cachedUserData =
+                snapshot.data!.data() as Map<String, dynamic>? ?? {};
+          }
 
-              return SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 18,
-                      ),
-                      decoration: BoxDecoration(
-                        color: primaryBlue,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 78,
-                            height: 78,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFD1D5DB),
-                              shape: BoxShape.circle,
-                            ),
-                            child: _buildProfileAvatar(photoUrl),
-                          ),
-                          const SizedBox(width: 18),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  displayName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.montserrat(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  email,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                InkWell(
-                                  onTap: () => _openEditProfileScreen(
-                                    currentName: displayName,
-                                    currentBirthDate: birthDate,
-                                    currentPhotoUrl: photoUrl,
-                                    email: email,
-                                  ),
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: Padding(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 2),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          'Edit Profile',
-                                          style: TextStyle(
-                                            fontSize: 12.5,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.white
-                                                .withValues(alpha: 0.95),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        const Icon(
-                                          Icons.edit_outlined,
-                                          size: 15,
-                                          color: Colors.white,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
+          final displayName =
+              (_cachedUserData['name'] ?? fallbackName).toString();
+          final birthDate = (_cachedUserData['birthDate'] ?? '').toString();
+          final photoUrl = (_cachedUserData['photoUrl'] ?? '').toString();
 
-                    Text(
-                      'Laporan & Tampilan',
-                      style: GoogleFonts.montserrat(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: titleColor,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Button ekspor laporan pdf
-                    _buildMenuTile(
-                      icon: Icons.picture_as_pdf_outlined,
-                      label: 'Ekspor Laporan PDF',
-                      cardBgColor: cardBgColor,
-                      borderColor: borderColor,
-                      textColor: itemTextColor,
-                      onTap: () => _openExportPdfScreen(
-                        ownerName: displayName,
-                        ownerEmail: email,
-                      ),
-                      trailing: Icon(
-                        Icons.chevron_right_rounded,
-                        color: itemTextColor,
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // button tampilan mode gelap / terang
-                    _buildMenuTile(
-                      icon: isDark
-                          ? Icons.dark_mode_outlined
-                          : Icons.wb_sunny_outlined,
-                      label: 'Tampilan',
-                      cardBgColor: cardBgColor,
-                      borderColor: borderColor,
-                      textColor: itemTextColor,
-                      onTap: () => setAppTheme(!isDark),
-                      trailing: SizedBox(
-                        height: 28,
-                        child: Switch(
-                          value: isDark,
-                          activeThumbColor: Colors.white,
-                          activeTrackColor: primaryBlue,
-                          onChanged: (value) => setAppTheme(value),
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 18,
+                  ),
+                  decoration: BoxDecoration(
+                    color: primaryBlue,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 78,
+                        height: 78,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFD1D5DB),
+                          shape: BoxShape.circle,
                         ),
+                        child: _buildProfileAvatar(photoUrl),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    Text(
-                      'Akun & Keamanan',
-                      style: GoogleFonts.montserrat(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: titleColor,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Button ubah password
-                    _buildMenuTile(
-                      icon: Icons.settings_outlined,
-                      label: 'Ubah Password',
-                      cardBgColor: cardBgColor,
-                      borderColor: borderColor,
-                      textColor: itemTextColor,
-                      onTap: _openChangePasswordScreen,
-                      trailing: Icon(
-                        Icons.chevron_right_rounded,
-                        color: itemTextColor,
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(height: 36),
-
-                    InkWell(
-                      onTap: _confirmLogout,
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        width: double.infinity,
-                        height: 52,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: cardBgColor,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: borderColor, width: 1.1),
-                        ),
-                        child: Row(
+                      const SizedBox(width: 18),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
-                              Icons.logout_rounded,
-                              color: Color(0xFFEF4444),
-                              size: 21,
-                            ),
-                            const SizedBox(width: 12),
                             Text(
-                              'Logout',
+                              displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.montserrat(
-                                fontSize: 14.5,
+                                fontSize: 17,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFFEF4444),
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              email,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: Colors.white.withValues(alpha: 0.9),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () => _openEditProfileScreen(
+                                currentName: displayName,
+                                currentBirthDate: birthDate,
+                                currentPhotoUrl: photoUrl,
+                                email: email,
+                              ),
+                              borderRadius: BorderRadius.circular(6),
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 2),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Edit Profile',
+                                      style: TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white
+                                            .withValues(alpha: 0.95),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Icon(
+                                      Icons.edit_outlined,
+                                      size: 15,
+                                      color: Colors.white,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              );
-            },
-          ),
-        );
-      },
+                const SizedBox(height: 24),
+
+                Text(
+                  'Laporan & Tampilan',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: titleColor,
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Button ekspor laporan pdf
+                _buildMenuTile(
+                  icon: Icons.picture_as_pdf_outlined,
+                  label: 'Ekspor Laporan PDF',
+                  cardBgColor: cardBgColor,
+                  borderColor: borderColor,
+                  textColor: itemTextColor,
+                  onTap: () => _openExportPdfScreen(
+                    ownerName: displayName,
+                    ownerEmail: email,
+                  ),
+                  trailing: Icon(
+                    Icons.chevron_right_rounded,
+                    color: itemTextColor,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // button tampilan mode gelap / terang
+                _buildMenuTile(
+                  icon: isDark
+                      ? Icons.dark_mode_outlined
+                      : Icons.wb_sunny_outlined,
+                  label: 'Tampilan',
+                  cardBgColor: cardBgColor,
+                  borderColor: borderColor,
+                  textColor: itemTextColor,
+                  onTap: () => setAppTheme(!isDark),
+                  trailing: SizedBox(
+                    height: 28,
+                    child: Switch(
+                      value: isDark,
+                      activeThumbColor: Colors.white,
+                      activeTrackColor: primaryBlue,
+                      onChanged: (value) => setAppTheme(value),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                Text(
+                  'Akun & Keamanan',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: titleColor,
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Button ubah password
+                _buildMenuTile(
+                  icon: Icons.settings_outlined,
+                  label: 'Ubah Password',
+                  cardBgColor: cardBgColor,
+                  borderColor: borderColor,
+                  textColor: itemTextColor,
+                  onTap: _openChangePasswordScreen,
+                  trailing: Icon(
+                    Icons.chevron_right_rounded,
+                    color: itemTextColor,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(height: 36),
+
+                InkWell(
+                  onTap: _confirmLogout,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    width: double.infinity,
+                    height: 52,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: cardBgColor,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: borderColor, width: 1.1),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.logout_rounded,
+                          color: Color(0xFFEF4444),
+                          size: 21,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Logout',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFEF4444),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
