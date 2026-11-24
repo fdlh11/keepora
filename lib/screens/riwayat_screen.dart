@@ -290,6 +290,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                     m.year == _selectedMonthYear.year &&
                                     m.month == _selectedMonthYear.month,
                               ),
+                              borderRadius: BorderRadius.circular(10),
                               dropdownColor: primaryBlue,
                               icon: const Icon(
                                 Icons.keyboard_arrow_down_rounded,

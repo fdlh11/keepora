@@ -980,6 +980,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                         DropdownButtonFormField<String>(
                           initialValue: _selectedCondition,
                           isExpanded: true,
+                          borderRadius: BorderRadius.circular(10),
                           icon: Icon(
                             Icons.keyboard_arrow_down_rounded,
                             color: isDark
