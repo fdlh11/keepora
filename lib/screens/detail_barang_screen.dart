@@ -24,7 +24,8 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
   final FocusNode _nameFocusNode = FocusNode();
   final TextEditingController _purchasePriceController =
       TextEditingController();
-  final TextEditingController _conditionController = TextEditingController();
+  final TextEditingController _conditionDetailController =
+      TextEditingController();
   final TextEditingController _maintenanceDetailController =
       TextEditingController();
 
@@ -32,6 +33,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
   bool _isSaving = false;
 
   String _selectedCategory = 'Umum';
+  String _selectedCondition = 'Bagus';
   String _purchaseDate = '';
   DateTime? _selectedPurchaseDate;
 
@@ -39,10 +41,11 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
   String _initialCategory = 'Umum';
   String _initialPurchaseDate = '';
   String _initialPurchasePriceDigits = '';
-  String _initialCondition = '';
+  String _initialCondition = 'Bagus';
+  String _initialConditionDetail = '';
   String _initialMaintenanceDetail = '';
 
-  // Kategorin barang
+  // Kategori barang
   static const List<String> _defaultCategories = [
     'Elektronik',
     'Kendaraan',
@@ -52,6 +55,14 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     'Olahraga & Hobi',
     'Umum',
     'Lainnya',
+  ];
+
+  // Pilihan kondisi barang
+  static const List<String> _conditionOptions = [
+    'Bagus',
+    'Baret',
+    'Jelek',
+    'Rusak',
   ];
 
   // List bulan
@@ -89,7 +100,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     _nameController.dispose();
     _nameFocusNode.dispose();
     _purchasePriceController.dispose();
-    _conditionController.dispose();
+    _conditionDetailController.dispose();
     _maintenanceDetailController.dispose();
     super.dispose();
   }
@@ -133,13 +144,36 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     return options;
   }
 
+  List<String> _getConditionDropdownOptions() {
+    final options = List<String>.from(_conditionOptions);
+    if (_selectedCondition.isNotEmpty && !options.contains(_selectedCondition)) {
+      options.insert(0, _selectedCondition);
+    }
+    return options;
+  }
+
+  String _getConditionDetailHint() {
+    switch (_selectedCondition) {
+      case 'Rusak':
+        return 'Jelaskan kerusakan barang dan penyebabnya...';
+      case 'Baret':
+        return 'Jelaskan bagian barang yang baret...';
+      case 'Jelek':
+        return 'Jelaskan bagian kondisi barang yang kurang baik...';
+      default:
+        return 'Jelaskan rincian kondisi barang (opsional jika bagus)...';
+    }
+  }
+
   bool get _hasUnsavedChanges {
     final currentPriceDigits = _extractDigits(_purchasePriceController.text);
     return _nameController.text.trim() != _initialName.trim() ||
         _selectedCategory.trim() != _initialCategory.trim() ||
         _purchaseDate.trim() != _initialPurchaseDate.trim() ||
         currentPriceDigits != _initialPurchasePriceDigits ||
-        _conditionController.text.trim() != _initialCondition.trim() ||
+        _selectedCondition.trim() != _initialCondition.trim() ||
+        _conditionDetailController.text.trim() !=
+            _initialConditionDetail.trim() ||
         _maintenanceDetailController.text.trim() !=
             _initialMaintenanceDetail.trim();
   }
@@ -419,6 +453,18 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
       return;
     }
 
+    final updatedCondition = _selectedCondition.trim();
+    final updatedConditionDetail = _conditionDetailController.text.trim();
+
+    if (updatedCondition != 'Bagus' && updatedConditionDetail.isEmpty) {
+      showTopNotif(
+        context,
+        'Harap isi rincian kondisi untuk barang dengan status $updatedCondition.',
+        isError: true,
+      );
+      return;
+    }
+
     _nameFocusNode.unfocus();
     setState(() => _isSaving = true);
 
@@ -429,7 +475,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
           : 'Rp ${_formatRibuan(rawPriceDigits)}';
       final updatedCategory = _selectedCategory.trim();
       final updatedDate = _purchaseDate.trim();
-      final updatedCondition = _conditionController.text.trim();
       final updatedDetail = _maintenanceDetailController.text.trim();
 
       final Map<String, dynamic> updatePayload = {
@@ -438,6 +483,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
         'purchaseDate': updatedDate,
         'purchasePrice': formattedPrice,
         'condition': updatedCondition,
+        'conditionDetail': updatedConditionDetail,
         'maintenanceDetail': updatedDetail,
       };
 
@@ -452,6 +498,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
       _initialPurchaseDate = updatedDate;
       _initialPurchasePriceDigits = rawPriceDigits;
       _initialCondition = updatedCondition;
+      _initialConditionDetail = updatedConditionDetail;
       _initialMaintenanceDetail = updatedDetail;
 
       if (mounted) {
@@ -628,15 +675,22 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
           _purchasePriceController.text =
               _formatRibuan(_initialPurchasePriceDigits);
 
-          _initialCondition = (data['condition'] ?? '').toString();
+          final rawCond = (data['condition'] ?? '').toString().trim();
+          _initialCondition = rawCond.isEmpty ? 'Bagus' : rawCond;
+          _selectedCondition = _initialCondition;
+
+          _initialConditionDetail =
+              (data['conditionDetail'] ?? '').toString();
+          _conditionDetailController.text = _initialConditionDetail;
+
           _initialMaintenanceDetail =
               (data['maintenanceDetail'] ?? '').toString();
-          _conditionController.text = _initialCondition;
           _maintenanceDetailController.text = _initialMaintenanceDetail;
           _isInitialized = true;
         }
 
         final categoryOptions = _getCategoryOptions();
+        final conditionDropdownOptions = _getConditionDropdownOptions();
 
         return PopScope(
           canPop: false,
@@ -913,8 +967,51 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedCondition,
+                          isExpanded: true,
+                          icon: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: isDark
+                                ? Colors.grey.shade400
+                                : Colors.grey.shade600,
+                          ),
+                          dropdownColor: surfaceColor,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          decoration: _editableBoxDecoration(
+                            'Pilih kondisi barang...',
+                            isDark,
+                          ),
+                          items: conditionDropdownOptions
+                              .map((cond) => DropdownMenuItem<String>(
+                                    value: cond,
+                                    child: Text(cond),
+                                  ))
+                              .toList(),
+                          onChanged: _isSaving
+                              ? null
+                              : (val) {
+                                  if (val != null) {
+                                    setState(() => _selectedCondition = val);
+                                  }
+                                },
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          'Rincian Kondisi Barang',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         TextField(
-                          controller: _conditionController,
+                          controller: _conditionDetailController,
                           maxLines: 3,
                           minLines: 2,
                           style: TextStyle(
@@ -923,7 +1020,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                             height: 1.35,
                           ),
                           decoration: _editableBoxDecoration(
-                            'Masukkan kondisi barang...',
+                            _getConditionDetailHint(),
                             isDark,
                           ),
                         ),

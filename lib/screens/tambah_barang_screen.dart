@@ -22,11 +22,13 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _conditionController = TextEditingController();
+  final TextEditingController _conditionDetailController =
+      TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
   File? _selectedImage;
   String? _selectedCategory;
+  String? _selectedCondition;
   DateTime? _purchaseDate;
   DateTime? _secondHandPurchaseDate;
   bool _isSaving = false;
@@ -38,6 +40,13 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
     'Perkakas & Alat Kerja',
     'Furnitur',
     'Lainnya',
+  ];
+
+  final List<String> _conditionOptions = [
+    'Bagus',
+    'Baret',
+    'Jelek',
+    'Rusak',
   ];
 
   static const List<String> _bulanIndo = [
@@ -59,7 +68,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
   void dispose() {
     _nameController.dispose();
     _priceController.dispose();
-    _conditionController.dispose();
+    _conditionDetailController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -70,9 +79,23 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
         _selectedCategory != null ||
         _purchaseDate != null ||
         _priceController.text.trim().isNotEmpty ||
-        _conditionController.text.trim().isNotEmpty ||
+        _selectedCondition != null ||
+        _conditionDetailController.text.trim().isNotEmpty ||
         _secondHandPurchaseDate != null ||
         _notesController.text.trim().isNotEmpty;
+  }
+
+  String _getConditionDetailHint() {
+    switch (_selectedCondition) {
+      case 'Rusak':
+        return 'Jelaskan kerusakan barang dan penyebabnya...';
+      case 'Baret':
+        return 'Jelaskan bagian barang yang baret...';
+      case 'Jelek':
+        return 'Jelaskan bagian kondisi barang yang kurang baik...';
+      default:
+        return 'Jelaskan rincian kondisi barang (opsional jika bagus)...';
+    }
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -447,6 +470,25 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
       return;
     }
 
+    if (_selectedCondition == null) {
+      showTopNotif(
+        context,
+        'Silakan pilih kondisi barang terlebih dahulu.',
+        isError: true,
+      );
+      return;
+    }
+
+    if (_selectedCondition != 'Bagus' &&
+        _conditionDetailController.text.trim().isEmpty) {
+      showTopNotif(
+        context,
+        'Harap isi rincian kondisi untuk barang dengan status $_selectedCondition.',
+        isError: true,
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {
@@ -472,7 +514,8 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
         'purchaseDate': activeDateFormatted,
         'secondHandPurchaseDate': isSecondHand ? activeDateFormatted : '',
         'purchasePrice': formattedPrice,
-        'condition': _conditionController.text.trim(),
+        'condition': _selectedCondition!,
+        'conditionDetail': _conditionDetailController.text.trim(),
         'notes': _notesController.text.trim(),
         'photoUrl': uploadedPhotoUrl,
         'lastMaintenance': '-',
@@ -880,14 +923,46 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _conditionController,
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedCondition,
+                    isExpanded: true,
+                    icon: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: textSecondary,
+                    ),
+                    dropdownColor: fieldFillColor,
                     style: TextStyle(fontSize: 13.5, color: textPrimary),
-                    validator: (val) => (val == null || val.trim().isEmpty)
-                        ? 'Kondisi barang wajib diisi'
-                        : null,
                     decoration: _inputDecoration(
-                      'Masukkan kondisi barang...',
+                      'Pilih Kondisi Barang...',
+                      fillColor: fieldFillColor,
+                      borderColor: borderColor,
+                    ),
+                    items: _conditionOptions
+                        .map((cond) => DropdownMenuItem(
+                              value: cond,
+                              child: Text(cond),
+                            ))
+                        .toList(),
+                    onChanged: (val) =>
+                        setState(() => _selectedCondition = val),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Rincian Kondisi Barang',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.bold,
+                      color: textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _conditionDetailController,
+                    maxLines: 3,
+                    minLines: 2,
+                    style: TextStyle(fontSize: 13.5, color: textPrimary),
+                    decoration: _inputDecoration(
+                      _getConditionDetailHint(),
                       fillColor: fieldFillColor,
                       borderColor: borderColor,
                     ),

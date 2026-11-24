@@ -35,35 +35,15 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
 
-  late String _birthDate;
-  DateTime? _selectedBirthDate;
   File? _newImageFile;
   late String _currentPhotoUrl;
   bool _isSaving = false;
-
-  // list bulan
-  static const List<String> _bulanIndo = [
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
-    'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
-  ];
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.initialName);
     _emailController = TextEditingController(text: widget.email);
-    _birthDate = widget.initialBirthDate;
-    _selectedBirthDate = _parseTanggalIndo(widget.initialBirthDate);
     _currentPhotoUrl = widget.initialPhotoUrl;
   }
 
@@ -74,26 +54,8 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
     super.dispose();
   }
 
-  // format tanggal
-  String _formatTanggalIndo(DateTime date) {
-    return '${date.day} ${_bulanIndo[date.month - 1]} ${date.year}';
-  }
-
-  DateTime? _parseTanggalIndo(String dateStr) {
-    final parts = dateStr.trim().split(' ');
-    if (parts.length != 3) return null;
-    final day = int.tryParse(parts[0]);
-    final monthIndex = _bulanIndo.indexWhere(
-      (b) => b.toLowerCase() == parts[1].toLowerCase(),
-    );
-    final year = int.tryParse(parts[2]);
-    if (day == null || monthIndex == -1 || year == null) return null;
-    return DateTime(year, monthIndex + 1, day);
-  }
-
   bool get _hasUnsavedChanges {
     return _nameController.text.trim() != widget.initialName.trim() ||
-        _birthDate.trim() != widget.initialBirthDate.trim() ||
         _newImageFile != null ||
         _currentPhotoUrl != widget.initialPhotoUrl;
   }
@@ -255,43 +217,6 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
     );
   }
 
-  Future<void> _pickBirthDate() async {
-    final now = DateTime.now();
-    final initial = _selectedBirthDate ?? DateTime(2000, 1, 1);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initial.isAfter(now) ? now : initial,
-      firstDate: DateTime(1940),
-      lastDate: now,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: isDark
-                ? const ColorScheme.dark(
-                    primary: Color(0xFF004AAD),
-                    onPrimary: Colors.white,
-                  )
-                : const ColorScheme.light(
-                    primary: Color(0xFF004AAD),
-                    onPrimary: Colors.white,
-                    onSurface: Colors.black87,
-                  ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null && mounted) {
-      setState(() {
-        _selectedBirthDate = picked;
-        _birthDate = _formatTanggalIndo(picked);
-      });
-    }
-  }
-
   Future<void> _handleBackPress() async {
     if (!_hasUnsavedChanges) {
       Navigator.pop(context);
@@ -440,7 +365,6 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
       await _firestore.collection('users').doc(user.uid).set(
         {
           'name': newName,
-          'birthDate': _birthDate.trim(),
           'photoUrl': finalPhotoUrl,
           'updatedAt': FieldValue.serverTimestamp(),
         },
@@ -546,10 +470,6 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor =
         isDark ? const Color(0xFF121212) : const Color(0xFFF3F4F6);
-    final fieldBgColor =
-        isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6);
-    final borderColor =
-        isDark ? Colors.grey.shade800 : Colors.grey.shade400;
     final textPrimary = isDark ? Colors.white : Colors.black87;
     final textSecondary =
         isDark ? Colors.grey.shade400 : Colors.grey.shade700;
@@ -648,7 +568,7 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // field email
                 Text(
                   'Email',

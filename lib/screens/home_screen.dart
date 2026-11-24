@@ -138,7 +138,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (lower.contains('rusak') || lower.contains('buruk')) {
       return isDark ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626);
     }
-    if (lower.contains('perlu') ||
+    if (lower.contains('baret') ||
+        lower.contains('jelek') ||
+        lower.contains('perlu') ||
         lower.contains('kurang') ||
         lower.contains('sedang')) {
       return isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706);
@@ -153,7 +155,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ? const Color(0xFF7F1D1D).withValues(alpha: 0.35)
           : const Color(0xFFFEE2E2);
     }
-    if (lower.contains('perlu') ||
+    if (lower.contains('baret') ||
+        lower.contains('jelek') ||
+        lower.contains('perlu') ||
         lower.contains('kurang') ||
         lower.contains('sedang')) {
       return isDark
@@ -172,7 +176,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ? const Color(0xFFDC2626).withValues(alpha: 0.5)
           : const Color(0xFFFECACA);
     }
-    if (lower.contains('perlu') ||
+    if (lower.contains('baret') ||
+        lower.contains('jelek') ||
+        lower.contains('perlu') ||
         lower.contains('kurang') ||
         lower.contains('sedang')) {
       return isDark
@@ -195,8 +201,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     Widget fallbackBox() {
       return Container(
-        width: 82,
-        height: 82,
+        width: 86,
+        height: 86,
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E3A5F) : const Color(0xFFEFF6FF),
           borderRadius: BorderRadius.circular(14),
@@ -220,8 +226,8 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(14),
         child: Image.memory(
           bytes,
-          width: 82,
-          height: 82,
+          width: 86,
+          height: 86,
           fit: BoxFit.cover,
           gaplessPlayback: true,
           errorBuilder: (_, __, ___) => fallbackBox(),
@@ -234,8 +240,8 @@ class _HomeScreenState extends State<HomeScreen> {
       borderRadius: BorderRadius.circular(14),
       child: Image.network(
         rawPhoto,
-        width: 82,
-        height: 82,
+        width: 86,
+        height: 86,
         fit: BoxFit.cover,
         gaplessPlayback: true,
         errorBuilder: (_, __, ___) => fallbackBox(),
@@ -791,10 +797,17 @@ class _HomeScreenState extends State<HomeScreen> {
                             final category =
                                 (data['category'] ?? 'Lainnya').toString();
                             final condition =
-                                (data['condition'] ?? 'Kondisi Baik')
-                                    .toString();
+                                (data['condition'] ?? 'Bagus').toString();
+                            final conditionDetail =
+                                (data['conditionDetail'] ?? '')
+                                    .toString()
+                                    .trim();
                             final lastMaint =
                                 (data['lastMaintenance'] ?? '-').toString();
+
+                            final showConditionDetail =
+                                condition.toLowerCase() != 'bagus' &&
+                                    conditionDetail.isNotEmpty;
 
                             final condTextColor =
                                 _getConditionTextColor(condition, isDark);
@@ -973,6 +986,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                               color: textSecondary,
                                             ),
                                           ),
+
+                                          // Rincian Kondisi (muncul otomatis jika kondisi selain Bagus)
+                                          if (showConditionDetail) ...[
+  const SizedBox(height: 3),
+  Text(
+    'Ket : $conditionDetail',
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: TextStyle(
+      fontSize: 12,
+      color: textSecondary,
+    ),
+  ),
+],
                                         ],
                                       ),
                                     ),
