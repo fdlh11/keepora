@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lottie/lottie.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -17,19 +18,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List _onboardingData = [
     {
-      'image': 'assets/image/ob1.png',
+      'animation': 'assets/animations/task_checklist.json',
       'title': 'Pantau Perawatan Barang',
       'subtitle':
           'Mencatat dan memantau riwayat perawatan rutin barang pribadi Anda dengan mudah.',
     },
     {
-      'image': 'assets/image/ob2.png',
+      'animation': 'assets/animations/timer.json',
       'title': 'Jangan Lewatkan Jadwal',
       'subtitle':
           'Dapatkan pengingat tepat waktu untuk perawatan laptop, kendaraan, atau barang pribadi Anda.',
     },
     {
-      'image': 'assets/image/ob3.png',
+      'animation': 'assets/animations/data_analysis.json',
       'title': 'Atur Biaya Perawatan',
       'subtitle':
           'Pantau total biaya perawatan bulanan agar pengeluaran Anda tetap terkontrol.',
@@ -120,8 +121,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Image.asset(
-                          item['image']!,
+                        Lottie.asset(
+                          item['animation']!,
                           height: 240,
                           fit: BoxFit.contain,
                         ),
