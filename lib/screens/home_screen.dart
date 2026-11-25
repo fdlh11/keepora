@@ -434,7 +434,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Satu Aplikasi Kelola Barang Pribadi Anda.',
+                                  'Mengelola Barang Pribadi Anda dalam Satu Aplikasi.',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.montserrat(

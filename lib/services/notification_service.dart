@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_10y.dart' as tz;
@@ -13,10 +15,13 @@ class NotificationService {
   bool _isInitialized = false;
   Future<void>? _initFuture;
 
-  static const String _channelId = 'keepora_maintenance_channel';
+  static const String _channelId = 'keepora_maintenance_channel_vibrate5s';
   static const String _channelName = 'Pengingat Jadwal Perawatan';
   static const String _channelDesc =
       'Notifikasi pengingat jadwal perawatan dan perbaikan barang pribadi.';
+
+  // Pola getar: 0ms jeda awal, lalu bergetar selama 5000ms (5 detik)
+  static final Int64List _vibration5Seconds = Int64List.fromList([0, 5000]);
 
   Future<void> init() {
     if (_isInitialized) return Future.value();
@@ -33,7 +38,7 @@ class NotificationService {
       const darwinInit = DarwinInitializationSettings(
         requestAlertPermission: true,
         requestBadgePermission: true,
-        requestSoundPermission: true,
+        requestSoundPermission: false,
       );
 
       const initSettings = InitializationSettings(
@@ -49,7 +54,11 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin>();
       if (androidImpl != null) {
         await androidImpl.requestNotificationsPermission();
-        await androidImpl.requestExactAlarmsPermission();
+        final canExact =
+            await androidImpl.canScheduleExactNotifications() ?? false;
+        if (!canExact) {
+          await androidImpl.requestExactAlarmsPermission();
+        }
       }
 
       _isInitialized = true;
@@ -59,28 +68,43 @@ class NotificationService {
     }
   }
 
+  Future<AndroidScheduleMode> _resolveScheduleMode() async {
+    final androidImpl = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (androidImpl != null) {
+      final canExact =
+          await androidImpl.canScheduleExactNotifications() ?? false;
+      if (canExact) {
+        return AndroidScheduleMode.exactAllowWhileIdle;
+      }
+    }
+    return AndroidScheduleMode.inexactAllowWhileIdle;
+  }
+
   /// Menghasilkan ID integer unik yang stabil dari scheduleId Firestore
   int _baseIdFromScheduleId(String scheduleId) {
     return (scheduleId.hashCode & 0x3FFFFFFF) * 2;
   }
 
   NotificationDetails _notificationDetails() {
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       _channelId,
       _channelName,
       channelDescription: _channelDesc,
-      importance: Importance.max,
+      importance: Importance.high,
       priority: Priority.high,
-      playSound: true,
+      playSound: false,
       enableVibration: true,
+      vibrationPattern: _vibration5Seconds,
+      visibility: NotificationVisibility.public,
       icon: '@mipmap/ic_launcher',
     );
     const iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
-      presentSound: true,
+      presentSound: false,
     );
-    return const NotificationDetails(android: androidDetails, iOS: iosDetails);
+    return NotificationDetails(android: androidDetails, iOS: iosDetails);
   }
 
   /// Jadwalkan pengingat H-1 dan Hari-H untuk jadwal perawatan
@@ -95,6 +119,7 @@ class NotificationService {
       await init();
       await cancelMaintenanceReminder(scheduleId);
 
+      final scheduleMode = await _resolveScheduleMode();
       final now = tz.TZDateTime.now(tz.local);
       final targetTime = tz.TZDateTime.from(scheduledAt, tz.local);
       final baseId = _baseIdFromScheduleId(scheduleId);
@@ -109,7 +134,7 @@ class NotificationService {
               '$maintenanceType untuk $assetName dijadwalkan besok pukul ${_formatJam(scheduledAt)} WIB.',
           scheduledDate: reminderH1,
           notificationDetails: _notificationDetails(),
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          androidScheduleMode: scheduleMode,
           payload: scheduleId,
         );
       }
@@ -122,7 +147,7 @@ class NotificationService {
           body: 'Jadwal "$title" untuk barang $assetName dimulai sekarang.',
           scheduledDate: targetTime,
           notificationDetails: _notificationDetails(),
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          androidScheduleMode: scheduleMode,
           payload: scheduleId,
         );
       }
@@ -141,18 +166,6 @@ class NotificationService {
     } catch (e) {
       debugPrint('Gagal membatalkan notifikasi: $e');
     }
-  }
-
-  /// Tes notifikasi langsung untuk memastikan izin & tampilan berfungsi
-  Future<void> showTestNotification() async {
-    await init();
-    await _plugin.show(
-      id: 999999,
-      title: 'Pengingat Keepora Aktif',
-      body:
-          'Notifikasi pengingat perawatan barang pribadi Anda sudah siap digunakan.',
-      notificationDetails: _notificationDetails(),
-    );
   }
 
   String _formatJam(DateTime dt) {

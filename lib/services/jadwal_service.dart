@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'notification_service.dart';
 
 class JadwalService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -62,7 +63,7 @@ class JadwalService {
     return _assetsRef.orderBy('name', descending: false).snapshots();
   }
 
-  // Tambah jadwal baru
+  // Tambah jadwal baru + pasang pengingat notifikasi lokal
   Future<void> tambahJadwal({
     required String title,
     required String assetId,
@@ -72,8 +73,9 @@ class JadwalService {
     double estimatedCost = 0,
     String notes = '',
   }) async {
-    await _schedulesRef.add({
-      'title': title.trim(),
+    final cleanTitle = title.trim();
+    final docRef = await _schedulesRef.add({
+      'title': cleanTitle,
       'assetId': assetId,
       'assetName': assetName,
       'scheduledAt': Timestamp.fromDate(scheduledAt),
@@ -84,9 +86,17 @@ class JadwalService {
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    await NotificationService.instance.scheduleMaintenanceReminder(
+      scheduleId: docRef.id,
+      title: cleanTitle,
+      assetName: assetName,
+      maintenanceType: maintenanceType,
+      scheduledAt: scheduledAt,
+    );
   }
 
-  // Perbarui detail jadwal
+  // Perbarui detail jadwal + perbarui pengingat notifikasi lokal
   Future<void> updateJadwal({
     required String scheduleId,
     required String title,
@@ -97,8 +107,9 @@ class JadwalService {
     double estimatedCost = 0,
     String notes = '',
   }) async {
+    final cleanTitle = title.trim();
     await _schedulesRef.doc(scheduleId).update({
-      'title': title.trim(),
+      'title': cleanTitle,
       'assetId': assetId,
       'assetName': assetName,
       'scheduledAt': Timestamp.fromDate(scheduledAt),
@@ -107,14 +118,23 @@ class JadwalService {
       'notes': notes.trim(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    await NotificationService.instance.scheduleMaintenanceReminder(
+      scheduleId: scheduleId,
+      title: cleanTitle,
+      assetName: assetName,
+      maintenanceType: maintenanceType,
+      scheduledAt: scheduledAt,
+    );
   }
 
-  // Hapus jadwal
+  // Hapus jadwal + batalkan pengingat notifikasi lokal
   Future<void> hapusJadwal(String scheduleId) async {
     await _schedulesRef.doc(scheduleId).delete();
+    await NotificationService.instance.cancelMaintenanceReminder(scheduleId);
   }
 
-  // Tandai jadwal selesai dan pindahkan otomatis ke riwayat perawatan aset
+  // Tandai jadwal selesai, batalkan notifikasi, dan pindahkan ke riwayat perawatan aset
   Future<void> tandaiSelesai({
     required String scheduleId,
     required Map<String, dynamic> scheduleData,
@@ -164,5 +184,6 @@ class JadwalService {
     }
 
     await batch.commit();
+    await NotificationService.instance.cancelMaintenanceReminder(scheduleId);
   }
 }
