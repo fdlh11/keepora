@@ -344,7 +344,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     return CustomScrollView(
                       slivers: [
-                        // Header Judul + Lonceng Polos & Tagline Satu Baris
+                        // Header Judul + Lonceng Polos & Tagline Muat Satu Baris
                         SliverToBoxAdapter(
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
@@ -433,16 +433,22 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  'Mengelola Barang Pribadi Anda dalam Satu Aplikasi.',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.montserrat(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark
-                                        ? Colors.grey.shade300
-                                        : const Color(0xFF3F3D3C),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      'Mengelola barang pribadi Anda dalam satu aplikasi',
+                                      maxLines: 1,
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark
+                                            ? Colors.grey.shade300
+                                            : const Color(0xFF3F3D3C),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],

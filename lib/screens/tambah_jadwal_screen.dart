@@ -572,7 +572,7 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                   onChanged: _onBiayaChanged,
                   style: TextStyle(fontSize: 14, color: textPrimary),
                   decoration: _inputDecoration(
-                    '00000',
+                    '0',
                     fillColor: fieldFillColor,
                     borderColor: borderColor,
                   ).copyWith(

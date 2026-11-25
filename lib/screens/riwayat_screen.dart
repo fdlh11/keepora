@@ -590,21 +590,12 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                         ),
                                       ),
                                     ),
-                                    RichText(
-                                      text: TextSpan(
-                                        style: TextStyle(
-                                          fontSize: 12.5,
-                                          color: textPrimary,
-                                        ),
-                                        children: [
-                                          const TextSpan(text: 'Biaya '),
-                                          TextSpan(
-                                            text: _formatRupiah(costValue),
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
+                                    Text(
+                                      'Biaya ${_formatRupiah(costValue)}',
+                                      style: TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: textPrimary,
                                       ),
                                     ),
                                   ],

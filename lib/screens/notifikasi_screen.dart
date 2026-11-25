@@ -34,10 +34,10 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
   String _formatTanggalJam(DateTime dt) {
     final jam = dt.hour.toString().padLeft(2, '0');
     final menit = dt.minute.toString().padLeft(2, '0');
-    return '${dt.day} ${_bulanSingkat[dt.month]} ${dt.year} • $jam:$menit WIB';
+    return '${dt.day} ${_bulanSingkat[dt.month]} ${dt.year} - $jam:$menit WIB';
   }
 
-  ({String label, String message, Color bg, Color text, Color border})
+  ({String label, String message, Color badgeBg, Color badgeText})
       _getReminderMeta(
     DateTime scheduledAt,
     String maintenanceType,
@@ -54,18 +54,16 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
     if (diffDays < 0) {
       return (
         label: 'Terlewat ${diffDays.abs()} Hari',
-        message: '$maintenanceType untuk $assetName telah melewati tenggat.',
-        bg: isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2),
-        text: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626),
-        border: isDark ? const Color(0xFF991B1B) : const Color(0xFFFCA5A5),
+        message: '$maintenanceType untuk barang $assetName telah melewati tenggat',
+        badgeBg: const Color(0xFFDC2626),
+        badgeText: Colors.white,
       );
     } else if (diffDays == 0) {
       return (
         label: 'Hari Ini',
-        message: 'Waktunya melakukan $lowerType untuk barang $assetName.',
-        bg: isDark ? const Color(0xFF452700) : const Color(0xFFFEF3C7),
-        text: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706),
-        border: isDark ? const Color(0xFFD97706) : const Color(0xFFFBBF24),
+        message: 'Waktunya melakukan $lowerType untuk barang $assetName',
+        badgeBg: const Color(0xFFD97706),
+        badgeText: Colors.white,
       );
     } else if (diffDays == 1) {
       final needsBudget = lowerType.contains('perbaikan') ||
@@ -73,35 +71,18 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
       return (
         label: 'Besok',
         message: needsBudget
-            ? 'Siapkan biaya $lowerType untuk barang $assetName.'
-            : 'Jadwal $lowerType untuk barang $assetName dilaksanakan besok.',
-        bg: isDark ? const Color(0xFF172554) : const Color(0xFFDBEAFE),
-        text: isDark ? const Color(0xFF60A5FA) : const Color(0xFF004AAD),
-        border: isDark ? const Color(0xFF1D4ED8) : const Color(0xFF93C5FD),
+            ? 'Siapkan biaya $lowerType untuk barang $assetName'
+            : 'Jadwal $lowerType untuk barang $assetName dilaksanakan besok',
+        badgeBg: isDark ? const Color(0xFF2563EB) : const Color(0xFF004AAD),
+        badgeText: Colors.white,
       );
     } else {
       return (
         label: '$diffDays Hari Lagi',
-        message: 'Rencana $lowerType terjadwal untuk barang $assetName.',
-        bg: isDark ? const Color(0xFF052E16) : const Color(0xFFDCFCE7),
-        text: isDark ? const Color(0xFF86EFAC) : const Color(0xFF15803D),
-        border: isDark ? const Color(0xFF166534) : const Color(0xFF86EFAC),
+        message: 'Jadwal $lowerType untuk barang $assetName dijadwalkan',
+        badgeBg: const Color(0xFF15803D),
+        badgeText: Colors.white,
       );
-    }
-  }
-
-  IconData _getMaintenanceIcon(String type) {
-    switch (type.toLowerCase()) {
-      case 'perbaikan':
-        return Icons.build_outlined;
-      case 'pembersihan':
-        return Icons.cleaning_services_outlined;
-      case 'penggantian komponen':
-        return Icons.settings_suggest_outlined;
-      case 'pengecekan rutin':
-        return Icons.fact_check_outlined;
-      default:
-        return Icons.notifications_active_outlined;
     }
   }
 
@@ -109,14 +90,13 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
   Widget build(BuildContext context) {
     const primaryBlue = Color(0xFF004AAD);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor =
-        isDark ? const Color(0xFF121212) : const Color(0xFFF3F4F6);
-    final surfaceColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final bgColor = isDark ? const Color(0xFF121212) : Colors.white;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFFAFAFA);
     final borderColor =
-        isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0);
+        isDark ? Colors.grey.shade800 : const Color(0xFFD1D5DB);
     final textPrimary = isDark ? Colors.white : const Color(0xFF1E1E1E);
     final textSecondary =
-        isDark ? Colors.grey.shade400 : const Color(0xFF4B5563);
+        isDark ? Colors.grey.shade400 : const Color(0xFF6B7280);
     final accentBlue = isDark ? const Color(0xFF60A5FA) : primaryBlue;
 
     return Scaffold(
@@ -220,9 +200,9 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
           }
 
           return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
             itemCount: docs.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, __) => const SizedBox(height: 14),
             itemBuilder: (context, index) {
               final doc = docs[index];
               final data = doc.data() as Map<String, dynamic>? ?? {};
@@ -248,47 +228,35 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
                     ),
                   );
                 },
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
                 child: Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
-                    color: surfaceColor,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: borderColor),
-                    boxShadow: [
-                      if (!isDark)
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                    ],
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: borderColor, width: 1),
                   ),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? const Color(0xFF172554)
-                              : const Color(0xFFDBEAFE),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: Icon(
-                          _getMaintenanceIcon(type),
+                          Icons.notifications_none_rounded,
                           color: accentBlue,
-                          size: 22,
+                          size: 32,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Expanded(
                                   child: Text(
@@ -296,7 +264,7 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.montserrat(
-                                      fontSize: 14.5,
+                                      fontSize: 13.5,
                                       fontWeight: FontWeight.bold,
                                       color: textPrimary,
                                     ),
@@ -305,40 +273,39 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 9,
-                                    vertical: 3,
+                                    horizontal: 12,
+                                    vertical: 3.5,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: meta.bg,
+                                    color: meta.badgeBg,
                                     borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: meta.border),
                                   ),
                                   child: Text(
                                     meta.label,
                                     style: TextStyle(
-                                      fontSize: 10.5,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.w600,
-                                      color: meta.text,
+                                      color: meta.badgeText,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 5),
+                            const SizedBox(height: 4),
                             Text(
                               meta.message,
                               style: TextStyle(
-                                fontSize: 12.5,
+                                fontSize: 12,
                                 color: textSecondary,
                                 height: 1.35,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6),
                             Row(
                               children: [
                                 Icon(
                                   Icons.access_time_rounded,
-                                  size: 13.5,
+                                  size: 14,
                                   color: accentBlue,
                                 ),
                                 const SizedBox(width: 5),

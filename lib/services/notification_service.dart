@@ -97,6 +97,8 @@ class NotificationService {
       enableVibration: true,
       vibrationPattern: _vibration5Seconds,
       visibility: NotificationVisibility.public,
+      category: AndroidNotificationCategory.reminder,
+      autoCancel: true,
       icon: '@mipmap/ic_launcher',
     );
     const iosDetails = DarwinNotificationDetails(
@@ -129,7 +131,7 @@ class NotificationService {
       if (reminderH1.isAfter(now)) {
         await _plugin.zonedSchedule(
           id: baseId + 1,
-          title: 'Pengingat Besok: $title',
+          title: 'H-1: $title',
           body:
               '$maintenanceType untuk $assetName dijadwalkan besok pukul ${_formatJam(scheduledAt)} WIB.',
           scheduledDate: reminderH1,
