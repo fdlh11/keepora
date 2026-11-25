@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../services/asset_service.dart';
 import 'detail_barang_screen.dart';
+import 'notifikasi_screen.dart';
 import 'tambah_barang_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -294,27 +295,125 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 return CustomScrollView(
                   slivers: [
-                    // Header Judul & Tagline
+                    // Header Judul + Lonceng Polos & Tagline Satu Baris
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'KEEPORA',
-                              style: GoogleFonts.montserrat(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.4,
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF3F3D3C),
-                              ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'KEEPORA',
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.4,
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF3F3D3C),
+                                  ),
+                                ),
+                                StreamBuilder<QuerySnapshot>(
+                                  stream: _upcomingSchedulesStream,
+                                  builder: (context, notifSnap) {
+                                    final now = DateTime.now();
+                                    final today =
+                                        DateTime(now.year, now.month, now.day);
+                                    final urgentCount =
+                                        (notifSnap.data?.docs ?? []).where((doc) {
+                                      final data = doc.data()
+                                              as Map<String, dynamic>? ??
+                                          {};
+                                      final status = (data['status'] ?? '')
+                                          .toString()
+                                          .toLowerCase();
+                                      final isCompleted =
+                                          data['isCompleted'] == true ||
+                                              status == 'selesai' ||
+                                              status == 'completed';
+                                      if (isCompleted) return false;
+                                      final dt = _parseScheduleDate(data);
+                                      if (dt == null) return false;
+                                      final target =
+                                          DateTime(dt.year, dt.month, dt.day);
+                                      return target.difference(today).inDays <= 3;
+                                    }).length;
+
+                                    return InkWell(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const NotifikasiScreen(),
+                                          ),
+                                        );
+                                      },
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(4),
+                                        child: Stack(
+                                          clipBehavior: Clip.none,
+                                          children: [
+                                            Icon(
+                                              Icons.notifications_none_rounded,
+                                              size: 26,
+                                              color: isDark
+                                                  ? Colors.white
+                                                  : const Color(0xFF3F3D3C),
+                                            ),
+                                            if (urgentCount > 0)
+                                              Positioned(
+                                                top: -3,
+                                                right: -4,
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                    horizontal: 4,
+                                                    vertical: 1,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        const Color(0xFFEF4444),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10),
+                                                  ),
+                                                  constraints:
+                                                      const BoxConstraints(
+                                                    minWidth: 15,
+                                                    minHeight: 15,
+                                                  ),
+                                                  child: Text(
+                                                    urgentCount > 9
+                                                        ? '9+'
+                                                        : '$urgentCount',
+                                                    textAlign: TextAlign.center,
+                                                    style: const TextStyle(
+                                                      fontSize: 9,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'Satu Aplikasi Kelola Barang Pribadi Anda.',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.montserrat(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w600,
