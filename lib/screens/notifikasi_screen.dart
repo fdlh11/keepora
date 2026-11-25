@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/jadwal_service.dart';
-import '../services/notification_service.dart';
-import '../utils/top_notif.dart';
 import 'detail_jadwal_screen.dart';
 
 class NotifikasiScreen extends StatefulWidget {
@@ -16,7 +14,6 @@ class NotifikasiScreen extends StatefulWidget {
 
 class _NotifikasiScreenState extends State<NotifikasiScreen> {
   final JadwalService _jadwalService = JadwalService();
-  final NotificationService _notifService = NotificationService.instance;
 
   static const List<String> _bulanSingkat = [
     '',
@@ -43,7 +40,7 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
   ({String label, String message, Color bg, Color text, Color border})
       _getReminderMeta(
     DateTime scheduledAt,
-    String title,
+    String maintenanceType,
     String assetName,
     bool isDark,
   ) {
@@ -52,12 +49,12 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
     final targetDay =
         DateTime(scheduledAt.year, scheduledAt.month, scheduledAt.day);
     final diffDays = targetDay.difference(today).inDays;
+    final lowerType = maintenanceType.toLowerCase();
 
     if (diffDays < 0) {
       return (
         label: 'Terlewat ${diffDays.abs()} Hari',
-        message:
-            'Jadwal "$title" untuk $assetName telah melewati batas waktu yang ditentukan.',
+        message: '$maintenanceType untuk $assetName telah melewati tenggat.',
         bg: isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2),
         text: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626),
         border: isDark ? const Color(0xFF991B1B) : const Color(0xFFFCA5A5),
@@ -65,17 +62,19 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
     } else if (diffDays == 0) {
       return (
         label: 'Hari Ini',
-        message:
-            'Waktunya melakukan "$title" untuk barang $assetName hari ini.',
+        message: 'Waktunya melakukan $lowerType untuk barang $assetName.',
         bg: isDark ? const Color(0xFF452700) : const Color(0xFFFEF3C7),
         text: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706),
         border: isDark ? const Color(0xFFD97706) : const Color(0xFFFBBF24),
       );
     } else if (diffDays == 1) {
+      final needsBudget = lowerType.contains('perbaikan') ||
+          lowerType.contains('penggantian');
       return (
         label: 'Besok',
-        message:
-            'Pengingat H-1: Jadwal "$title" untuk $assetName dijadwalkan besok.',
+        message: needsBudget
+            ? 'Siapkan biaya $lowerType untuk barang $assetName.'
+            : 'Jadwal $lowerType untuk barang $assetName dilaksanakan besok.',
         bg: isDark ? const Color(0xFF172554) : const Color(0xFFDBEAFE),
         text: isDark ? const Color(0xFF60A5FA) : const Color(0xFF004AAD),
         border: isDark ? const Color(0xFF1D4ED8) : const Color(0xFF93C5FD),
@@ -83,8 +82,7 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
     } else {
       return (
         label: '$diffDays Hari Lagi',
-        message:
-            'Jadwal "$title" untuk $assetName akan jatuh tempo dalam $diffDays hari.',
+        message: 'Rencana $lowerType terjadwal untuk barang $assetName.',
         bg: isDark ? const Color(0xFF052E16) : const Color(0xFFDCFCE7),
         text: isDark ? const Color(0xFF86EFAC) : const Color(0xFF15803D),
         border: isDark ? const Color(0xFF166534) : const Color(0xFF86EFAC),
@@ -104,19 +102,6 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
         return Icons.fact_check_outlined;
       default:
         return Icons.notifications_active_outlined;
-    }
-  }
-
-  Future<void> _kirimTesNotifikasi() async {
-    try {
-      await _notifService.showTestNotification();
-      if (mounted) {
-        showTopNotif(context, 'Notifikasi tes berhasil dikirim ke bilah status.');
-      }
-    } catch (e) {
-      if (mounted) {
-        showTopNotif(context, 'Gagal mengirim tes notifikasi: $e', isError: true);
-      }
     }
   }
 
@@ -146,24 +131,13 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
           icon: Icon(Icons.arrow_back, color: textPrimary),
         ),
         title: Text(
-          'Notifikasi',
+          'Notifikasi Jadwal',
           style: GoogleFonts.montserrat(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: textPrimary,
           ),
         ),
-        actions: [
-          IconButton(
-            onPressed: _kirimTesNotifikasi,
-            tooltip: 'Tes Notifikasi',
-            icon: Icon(
-              Icons.notification_add_outlined,
-              color: accentBlue,
-            ),
-          ),
-          const SizedBox(width: 4),
-        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _jadwalService.streamJadwalAktif(),
@@ -260,8 +234,7 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
                   (data['scheduledAt'] as Timestamp?)?.toDate() ??
                       DateTime.now();
 
-              final meta =
-                  _getReminderMeta(scheduledAt, title, assetName, isDark);
+              final meta = _getReminderMeta(scheduledAt, type, assetName, isDark);
 
               return InkWell(
                 onTap: () {

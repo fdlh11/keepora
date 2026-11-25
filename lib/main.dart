@@ -46,8 +46,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await loadSavedTheme();
-  await NotificationService.instance.init();
   runApp(const MyApp());
+  NotificationService.instance.init();
 }
 
 class MyApp extends StatefulWidget {

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/data/latest_10y.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
@@ -11,42 +11,52 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   bool _isInitialized = false;
+  Future<void>? _initFuture;
 
   static const String _channelId = 'keepora_maintenance_channel';
   static const String _channelName = 'Pengingat Jadwal Perawatan';
   static const String _channelDesc =
       'Notifikasi pengingat jadwal perawatan dan perbaikan barang pribadi.';
 
-  Future<void> init() async {
-    if (_isInitialized) return;
+  Future<void> init() {
+    if (_isInitialized) return Future.value();
+    _initFuture ??= _doInit();
+    return _initFuture!;
+  }
 
-    tz.initializeTimeZones();
-    tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
+  Future<void> _doInit() async {
+    try {
+      tz.initializeTimeZones();
+      tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
 
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const darwinInit = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const darwinInit = DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
 
-    const initSettings = InitializationSettings(
-      android: androidInit,
-      iOS: darwinInit,
-    );
+      const initSettings = InitializationSettings(
+        android: androidInit,
+        iOS: darwinInit,
+      );
 
-    await _plugin.initialize(
-      settings: initSettings,
-    );
+      await _plugin.initialize(
+        settings: initSettings,
+      );
 
-    final androidImpl = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
-    if (androidImpl != null) {
-      await androidImpl.requestNotificationsPermission();
-      await androidImpl.requestExactAlarmsPermission();
+      final androidImpl = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (androidImpl != null) {
+        await androidImpl.requestNotificationsPermission();
+        await androidImpl.requestExactAlarmsPermission();
+      }
+
+      _isInitialized = true;
+    } catch (e) {
+      _initFuture = null;
+      debugPrint('Gagal inisialisasi notifikasi: $e');
     }
-
-    _isInitialized = true;
   }
 
   /// Menghasilkan ID integer unik yang stabil dari scheduleId Firestore
