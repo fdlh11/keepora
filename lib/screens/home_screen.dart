@@ -30,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _searchQuery = '';
   String _selectedCategory = 'Semua';
+  bool _hasShownOverdueDialog = false;
 
   // List kategori disamakan dengan DetailBarangScreen
   final List<String> _categories = const [
@@ -101,6 +102,8 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _parseScheduleDate(Map<String, dynamic> data) {
     final ts = data['scheduledAt'] as Timestamp?;
     if (ts != null) return ts.toDate();
+    final tsAlt = data['scheduledTimestamp'] as Timestamp?;
+    if (tsAlt != null) return tsAlt.toDate();
     return null;
   }
 
@@ -119,6 +122,266 @@ class _HomeScreenState extends State<HomeScreen> {
     if (diffDays == 0) return 'Hari Ini';
     if (diffDays == 1) return 'Besok';
     return '$diffDays Hari Lagi';
+  }
+
+  String _formatOverdueDuration(DateTime scheduledAt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target =
+        DateTime(scheduledAt.year, scheduledAt.month, scheduledAt.day);
+    final diffDays = today.difference(target).inDays;
+
+    if (diffDays <= 0) return 'Terlewat hari ini';
+    return 'Terlambat $diffDays hari';
+  }
+
+  void _showOverdueMaintenanceDialog(
+    List<QueryDocumentSnapshot> overdueDocs,
+  ) {
+    if (!mounted || overdueDocs.isEmpty) return;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const primaryBlue = Color(0xFF004AAD);
+    final dialogBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF1E1E1E);
+    final textSecondary =
+        isDark ? Colors.grey.shade300 : const Color(0xFF4B5563);
+
+    final firstData =
+        overdueDocs.first.data() as Map<String, dynamic>? ?? {};
+    final String firstTitle =
+        (firstData['title'] ?? 'Perawatan Terjadwal').toString();
+    final String firstAsset =
+        (firstData['assetName'] ?? 'Barang Pribadi').toString();
+    final DateTime? firstDate = _parseScheduleDate(firstData);
+    final int totalOverdue = overdueDocs.length;
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Peringatan Jadwal Terlewat',
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (dialogContext, _, _) {
+        return Center(
+          child: Dialog(
+            insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+            ),
+            backgroundColor: dialogBg,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF7F1D1D).withValues(alpha: 0.35)
+                          : const Color(0xFFFEE2E2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.warning_amber_rounded,
+                      size: 32,
+                      color: isDark
+                          ? const Color(0xFFFCA5A5)
+                          : const Color(0xFFDC2626),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    totalOverdue == 1
+                        ? 'Jadwal Perawatan Terlewat'
+                        : 'Ada $totalOverdue Jadwal Terlewat',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.montserrat(
+                      fontSize: 17.5,
+                      fontWeight: FontWeight.bold,
+                      color: textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    totalOverdue == 1
+                        ? 'Anda memiliki 1 jadwal perawatan yang sudah melewati tenggat dan belum ditandai selesai:'
+                        : 'Anda memiliki $totalOverdue jadwal perawatan yang melewati tenggat. Segera cek atau tandai selesai:',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF262626)
+                          : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isDark
+                            ? const Color(0xFFDC2626).withValues(alpha: 0.45)
+                            : const Color(0xFFFECACA),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                firstTitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: textPrimary,
+                                ),
+                              ),
+                            ),
+                            if (firstDate != null) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF7F1D1D)
+                                          .withValues(alpha: 0.45)
+                                      : const Color(0xFFFEE2E2),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  _formatOverdueDuration(firstDate),
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark
+                                        ? const Color(0xFFFCA5A5)
+                                        : const Color(0xFFDC2626),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          firstAsset,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w500,
+                            color: textSecondary,
+                          ),
+                        ),
+                        if (totalOverdue > 1) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            '+ ${totalOverdue - 1} jadwal terlewat lainnya',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? const Color(0xFF60A5FA)
+                                  : primaryBlue,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 44,
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: isDark
+                                  ? const Color(0xFF60A5FA)
+                                  : primaryBlue,
+                              side: const BorderSide(
+                                color: Color(0xFF64A1F4),
+                                width: 1.2,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Nanti Saja',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: SizedBox(
+                          height: 44,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(dialogContext);
+                              widget.onNavigateToJadwal?.call();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryBlue,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Lihat Jadwal',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (_, animation, _, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.92, end: 1.0).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
   }
 
   IconData _getMaintenanceIcon(String type) {
@@ -299,6 +562,21 @@ class _HomeScreenState extends State<HomeScreen> {
                         _parseScheduleDate(b.data() as Map<String, dynamic>)!;
                     return dtA.compareTo(dtB);
                   });
+
+                if (schedSnapshot.hasData && !_hasShownOverdueDialog) {
+                  _hasShownOverdueDialog = true;
+                  final overdueDocs = activeSchedules.where((doc) {
+                    final dt = _parseScheduleDate(
+                        doc.data() as Map<String, dynamic>)!;
+                    return dt.isBefore(now);
+                  }).toList();
+
+                  if (overdueDocs.isNotEmpty) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _showOverdueMaintenanceDialog(overdueDocs);
+                    });
+                  }
+                }
 
                 final urgentCount = activeSchedules.where((doc) {
                   final dt =
