@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../services/asset_service.dart';
 import '../utils/custom_app_dropdown.dart';
@@ -21,6 +23,7 @@ class DetailBarangScreen extends StatefulWidget {
 class _DetailBarangScreenState extends State<DetailBarangScreen>
     with SingleTickerProviderStateMixin {
   final AssetService _assetService = AssetService();
+  final ImagePicker _picker = ImagePicker();
   late final Stream<QuerySnapshot> _assetsStream;
 
   final TextEditingController _nameController = TextEditingController();
@@ -44,6 +47,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
   bool _isInitialized = false;
   bool _isSaving = false;
   Map<String, dynamic>? _cachedAssetData;
+  File? _newSelectedImage;
 
   String _selectedCategory = 'Umum';
   String _selectedCondition = 'Bagus';
@@ -305,6 +309,315 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
     _catAnimController.forward();
   }
 
+  Future<void> _pickNewImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 1280,
+        maxHeight: 1280,
+        imageQuality: 80,
+      );
+
+      if (pickedFile != null && mounted) {
+        setState(() {
+          _newSelectedImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        showTopNotif(context, 'Gagal mengambil foto: $e', isError: true);
+      }
+    }
+  }
+
+  void _showPhotoPreviewDialog(String currentPhotoUrl) {
+    final bool hasAnyPhoto =
+        _newSelectedImage != null || currentPhotoUrl.trim().isNotEmpty;
+    if (!hasAnyPhoto) return;
+
+    Widget buildFullWidthPreview() {
+      if (_newSelectedImage != null) {
+        return Image.file(
+          _newSelectedImage!,
+          width: double.infinity,
+          fit: BoxFit.contain,
+        );
+      }
+
+      if (currentPhotoUrl.startsWith('data:image')) {
+        try {
+          final base64Part = currentPhotoUrl.split(',').last;
+          final bytes = base64Decode(base64Part);
+          return Image.memory(
+            bytes,
+            width: double.infinity,
+            fit: BoxFit.contain,
+            gaplessPlayback: true,
+          );
+        } catch (_) {
+          return const SizedBox.shrink();
+        }
+      }
+
+      return Image.network(
+        currentPhotoUrl,
+        width: double.infinity,
+        fit: BoxFit.contain,
+        gaplessPlayback: true,
+      );
+    }
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Tutup Preview Foto',
+      barrierColor: Colors.black.withValues(alpha: 0.92),
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (dialogContext, _, _) {
+        return SafeArea(
+          child: Material(
+            color: Colors.transparent,
+            child: Stack(
+              children: [
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Navigator.pop(dialogContext),
+                  child: Center(
+                    child: InteractiveViewer(
+                      minScale: 1.0,
+                      maxScale: 4.0,
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: buildFullWidthPreview(),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 12,
+                  right: 14,
+                  child: IconButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.16),
+                    ),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (_, animation, _, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.94, end: 1.0).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
+  void _showPhotoActionSheet(String currentPhotoUrl) {
+    if (_isSaving) return;
+    _removeCategoryOverlayImmediate();
+    FocusScope.of(context).unfocus();
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final sheetBg = isDark ? theme.colorScheme.surface : Colors.white;
+    final textPrimary = theme.colorScheme.onSurface;
+    final textSecondary =
+        isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+    final iconBg = isDark
+        ? const Color(0xFF004AAD).withValues(alpha: 0.25)
+        : const Color(0xFFDBEAFE);
+    final iconColor =
+        isDark ? const Color(0xFF93C5FD) : const Color(0xFF004AAD);
+
+    final bool hasPhoto =
+        _newSelectedImage != null || currentPhotoUrl.trim().isNotEmpty;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: sheetBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                Text(
+                  'Foto Barang',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (hasPhoto) ...[
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: iconBg,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.visibility_outlined,
+                        color: iconColor,
+                      ),
+                    ),
+                    title: Text(
+                      'Lihat Foto',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: textPrimary,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Tampilkan preview foto barang ukuran penuh',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: textSecondary,
+                      ),
+                    ),
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      _showPhotoPreviewDialog(currentPhotoUrl);
+                    },
+                  ),
+                  const SizedBox(height: 6),
+                ],
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: iconBg,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.camera_alt_outlined,
+                      color: iconColor,
+                    ),
+                  ),
+                  title: Text(
+                    'Ganti Foto dari Kamera',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Ambil foto baru menggunakan kamera perangkat',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: textSecondary,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _pickNewImage(ImageSource.camera);
+                  },
+                ),
+                const SizedBox(height: 6),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: iconBg,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.photo_library_outlined,
+                      color: iconColor,
+                    ),
+                  ),
+                  title: Text(
+                    'Ganti Foto dari Galeri',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Pilih foto barang lain yang tersimpan di HP',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: textSecondary,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _pickNewImage(ImageSource.gallery);
+                  },
+                ),
+                if (_newSelectedImage != null) ...[
+                  const SizedBox(height: 6),
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.red.withValues(alpha: 0.2)
+                            : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.undo_rounded,
+                        color: Colors.red.shade400,
+                      ),
+                    ),
+                    title: Text(
+                      'Batalkan Foto Baru',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: Colors.red.shade400,
+                      ),
+                    ),
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      setState(() => _newSelectedImage = null);
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   String _formatTanggalSingkat(DateTime date) {
     return '${date.day} ${_bulanSingkat[date.month - 1]} ${date.year}';
   }
@@ -373,7 +686,8 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
 
   bool get _hasUnsavedChanges {
     final currentPriceDigits = _extractDigits(_purchasePriceController.text);
-    return _nameController.text.trim() != _initialName.trim() ||
+    return _newSelectedImage != null ||
+        _nameController.text.trim() != _initialName.trim() ||
         _selectedCategory.trim() != _initialCategory.trim() ||
         _purchaseDate.trim() != _initialPurchaseDate.trim() ||
         currentPriceDigits != _initialPurchasePriceDigits ||
@@ -679,6 +993,12 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
     setState(() => _isSaving = true);
 
     try {
+      String? updatedPhotoUrl;
+      if (_newSelectedImage != null) {
+        updatedPhotoUrl =
+            await _assetService.uploadAssetImage(_newSelectedImage!);
+      }
+
       final rawPriceDigits = _extractDigits(_purchasePriceController.text);
       final formattedPrice = rawPriceDigits.isEmpty
           ? 'Rp 0'
@@ -697,12 +1017,17 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
         'maintenanceDetail': updatedDetail,
       };
 
+      if (updatedPhotoUrl != null) {
+        updatePayload['photoUrl'] = updatedPhotoUrl;
+      }
+
       if (purchaseType == 'Second') {
         updatePayload['secondHandPurchaseDate'] = updatedDate;
       }
 
       await _assetService.updateAsset(widget.assetId, updatePayload);
 
+      _newSelectedImage = null;
       _initialName = updatedName;
       _initialCategory = updatedCategory;
       _initialPurchaseDate = updatedDate;
@@ -802,6 +1127,14 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
   }
 
   Widget _buildAssetPhoto(String photoUrl, bool isDark) {
+    if (_newSelectedImage != null) {
+      return Image.file(
+        _newSelectedImage!,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+      );
+    }
+
     if (photoUrl.isEmpty) return _photoPlaceholder(isDark);
 
     if (photoUrl.startsWith('data:image')) {
@@ -951,13 +1284,56 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: double.infinity,
-                    height: 205,
-                    color: isDark
-                        ? const Color(0xFF1E1E1E)
-                        : const Color(0xFFE5E7EB),
-                    child: _buildAssetPhoto(photoUrl, isDark),
+                  GestureDetector(
+                    onTap: () => _showPhotoActionSheet(photoUrl),
+                    child: Container(
+                      width: double.infinity,
+                      height: 205,
+                      color: isDark
+                          ? const Color(0xFF1E1E1E)
+                          : const Color(0xFFE5E7EB),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          _buildAssetPhoto(photoUrl, isDark),
+                          if (_newSelectedImage != null ||
+                              photoUrl.trim().isNotEmpty)
+                            Positioned(
+                              right: 12,
+                              bottom: 12,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 11,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.62),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.photo_camera_outlined,
+                                      size: 14,
+                                      color: Colors.white,
+                                    ),
+                                    SizedBox(width: 5),
+                                    Text(
+                                      'Lihat / Ganti Foto',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
@@ -1304,13 +1680,13 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(
-          Icons.image_outlined,
-          size: 46,
+          Icons.add_a_photo_outlined,
+          size: 42,
           color: Colors.grey.shade500,
         ),
         const SizedBox(height: 6),
         Text(
-          'Foto Barang',
+          'Ketuk untuk Unggah Foto Barang',
           style: TextStyle(
             fontSize: 12.5,
             color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
