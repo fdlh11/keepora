@@ -15,6 +15,9 @@ class NotificationService {
   bool _isInitialized = false;
   Future<void>? _initFuture;
 
+  void Function(String? payload)? _onNotificationTapCallback;
+  String? _pendingLaunchPayload;
+
   static const String _channelId = 'keepora_maintenance_channel_vibrate5s';
   static const String _channelName = 'Pengingat Jadwal Perawatan';
   static const String _channelDesc =
@@ -22,6 +25,23 @@ class NotificationService {
 
   // Pola getar: 0ms jeda awal, lalu bergetar selama 5000ms (5 detik)
   static final Int64List _vibration5Seconds = Int64List.fromList([0, 5000]);
+
+  /// Daftarkan handler navigasi saat notifikasi diketuk
+  void setNotificationTapHandler(void Function(String? payload) onTap) {
+    _onNotificationTapCallback = onTap;
+    if (_pendingLaunchPayload != null) {
+      final payload = _pendingLaunchPayload;
+      _pendingLaunchPayload = null;
+      onTap(payload);
+    }
+  }
+
+  /// Ambil & hapus flag jika aplikasi dibuka dari ketukan notifikasi (cold start)
+  String? consumePendingLaunchPayload() {
+    final payload = _pendingLaunchPayload;
+    _pendingLaunchPayload = null;
+    return payload;
+  }
 
   Future<void> init() {
     if (_isInitialized) return Future.value();
@@ -48,7 +68,27 @@ class NotificationService {
 
       await _plugin.initialize(
         settings: initSettings,
+        onDidReceiveNotificationResponse: (NotificationResponse response) {
+          final payload = response.payload ?? 'open_notifikasi';
+          if (_onNotificationTapCallback != null) {
+            _onNotificationTapCallback!(payload);
+          } else {
+            _pendingLaunchPayload = payload;
+          }
+        },
       );
+
+      // Cek apakah aplikasi dibuka dari notifikasi saat aplikasi sedang tertutup
+      final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+      if (launchDetails?.didNotificationLaunchApp ?? false) {
+        final payload =
+            launchDetails?.notificationResponse?.payload ?? 'open_notifikasi';
+        if (_onNotificationTapCallback != null) {
+          _onNotificationTapCallback!(payload);
+        } else {
+          _pendingLaunchPayload = payload;
+        }
+      }
 
       final androidImpl = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();

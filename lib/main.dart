@@ -11,12 +11,16 @@ import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/navbar_screen.dart';
+import 'screens/notifikasi_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/lupa_password_screen.dart';
 import 'screens/verif_otp_screen.dart';
 import 'screens/password_baru_screen.dart';
 
 const String _themePrefKey = 'keepora_theme_mode';
+
+// NavigatorKey global agar notifikasi bisa mengarahkan ke halaman Notifikasi dari mana saja
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 // Pengontrol tema global aplikasi (Default mengikuti tema sistem HP)
 final ValueNotifier<ThemeMode> appThemeNotifier =
@@ -42,12 +46,26 @@ Future<void> setAppTheme(bool isDark) async {
   await prefs.setString(_themePrefKey, isDark ? 'dark' : 'light');
 }
 
+void _navigateToNotifikasiFromTap() {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null || !user.emailVerified) return;
+
+  final nav = appNavigatorKey.currentState;
+  if (nav == null) return;
+
+  // Pastikan tumpukan dasar berada di '/home' (NavbarScreen), lalu buka NotifikasiScreen
+  nav.pushNamedAndRemoveUntil('/home', (route) => false);
+  nav.push(
+    MaterialPageRoute(builder: (_) => const NotifikasiScreen()),
+  );
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await loadSavedTheme();
+  await NotificationService.instance.init();
   runApp(const MyApp());
-  NotificationService.instance.init();
 }
 
 class MyApp extends StatefulWidget {
@@ -73,6 +91,12 @@ class _MyAppState extends State<MyApp> {
       titleLarge: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
       titleMedium: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService.instance.setNotificationTapHandler((_) {
+        _navigateToNotifikasiFromTap();
+      });
+    });
   }
 
   @override
@@ -81,6 +105,7 @@ class _MyAppState extends State<MyApp> {
       valueListenable: appThemeNotifier,
       builder: (context, currentMode, _) {
         return MaterialApp(
+          navigatorKey: appNavigatorKey,
           themeMode: currentMode,
           themeAnimationDuration: Duration.zero,
           theme: ThemeData(
@@ -137,6 +162,7 @@ class _MyAppState extends State<MyApp> {
             '/verifOTP': (context) => const VerifOtpScreen(),
             '/passwordBaru': (context) => const PasswordBaruScreen(),
             '/home': (context) => const NavbarScreen(),
+            '/notifikasi': (context) => const NotifikasiScreen(),
           },
         );
       },
