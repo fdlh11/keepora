@@ -273,9 +273,23 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                   onTap: () {
                     Navigator.pushNamed(context, '/register');
                   },
-                  child: const Text(
-                    'Belum Punya Akun? Register!',
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4),
+                    child: Text.rich(
+                      TextSpan(
+                        text: 'Belum Punya Akun? ',
+                        style: TextStyle(color: Colors.white70, fontSize: 12.5),
+                        children: [
+                          TextSpan(
+                            text: 'Register!',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),

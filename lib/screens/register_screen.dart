@@ -216,29 +216,39 @@ class _RegisterScreenState extends State<RegisterScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                style: IconButton.styleFrom(
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                ),
-                tooltip: 'Kembali',
-                onPressed: () => Navigator.pop(context),
+              Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 20),
+                    child: Center(
+                      child: Image.asset(
+                        'assets/image/logo.png',
+                        width: 200,
+                        height: 200,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      style: IconButton.styleFrom(
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(
+                        Icons.arrow_back,
+                        color: Colors.white,
+                      ),
+                      tooltip: 'Kembali',
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              Center(
-                child: Image.asset(
-                  'assets/image/logo.png',
-                  width: 200,
-                  height: 200,
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 32),
               Text(
                 'Buat Akun',
                 style: GoogleFonts.montserrat(
@@ -253,6 +263,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                 style: TextStyle(fontSize: 13, color: Colors.white70),
               ),
               const SizedBox(height: 28),
+
+              // Email
               const Text(
                 'Email',
                 style: TextStyle(
@@ -291,6 +303,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                 ),
               ),
               const SizedBox(height: 18),
+
+              // Password
               const Text(
                 'Password',
                 style: TextStyle(
@@ -342,6 +356,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                 ),
               ),
               const SizedBox(height: 18),
+
+              // Konfirmasi Password
               const Text(
                 'Konfirmasi Password',
                 style: TextStyle(
@@ -393,7 +409,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
               SizedBox(
                 width: double.infinity,
                 height: 50,
