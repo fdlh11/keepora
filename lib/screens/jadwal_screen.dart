@@ -496,7 +496,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Hari ini: ${today.day} ${_bulanIndo[today.month]}',
+                          'Hari ini: ${today.day} ${_bulanSingkat[today.month]}',
                           style: TextStyle(
                             fontSize: 11.5,
                             color: textSecondary,

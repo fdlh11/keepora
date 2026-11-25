@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../services/asset_service.dart';
 import '../utils/top_notif.dart';
+import '../utils/custom_app_dropdown.dart';
 
 class TambahBarangScreen extends StatefulWidget {
   const TambahBarangScreen({super.key});
@@ -33,35 +34,37 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
   DateTime? _secondHandPurchaseDate;
   bool _isSaving = false;
 
-  final List<String> _categories = [
+  final List<String> _categories = const [
     'Elektronik',
     'Kendaraan',
-    'Peralatan Rumah Tangga',
-    'Perkakas & Alat Kerja',
     'Furnitur',
+    'Peralatan Rumah',
+    'Gadget',
+    'Olahraga & Hobi',
+    'Umum',
     'Lainnya',
   ];
 
-  final List<String> _conditionOptions = [
+  final List<String> _conditionOptions = const [
     'Bagus',
     'Baret',
     'Jelek',
     'Rusak',
   ];
 
-  static const List<String> _bulanIndo = [
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
+  static const List<String> _bulanSingkat = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
     'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
   ];
 
   @override
@@ -94,7 +97,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
       case 'Jelek':
         return 'Jelaskan bagian kondisi barang yang kurang baik...';
       default:
-        return 'Jelaskan rincian kondisi barang (opsional jika bagus)...';
+        return 'Jelaskan rincian kondisi barang...';
     }
   }
 
@@ -389,9 +392,9 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
   }
 
   String _formatTanggalIndo(DateTime date) {
-    return '${date.day} ${_bulanIndo[date.month - 1]} ${date.year}';
+    return '${date.day} ${_bulanSingkat[date.month - 1]} ${date.year}';
   }
-
+  
   String _formatRibuan(String digits) {
     final buffer = StringBuffer();
     for (int i = 0; i < digits.length; i++) {
@@ -748,27 +751,14 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedCategory,
-                    isExpanded: true,
-                    borderRadius: BorderRadius.circular(10),
-                    icon: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: textSecondary,
-                    ),
-                    dropdownColor: fieldFillColor,
-                    style: TextStyle(fontSize: 13.5, color: textPrimary),
-                    decoration: _inputDecoration(
-                      'Pilih Kategori Barang...',
-                      fillColor: fieldFillColor,
-                      borderColor: borderColor,
-                    ),
-                    items: _categories
-                        .map((cat) => DropdownMenuItem(
-                              value: cat,
-                              child: Text(cat),
-                            ))
-                        .toList(),
+                  CustomAppDropdown(
+                    value: _selectedCategory,
+                    items: _categories,
+                    hint: 'Pilih Kategori Barang...',
+                    enabled: !_isSaving,
+                    fillColor: fieldFillColor,
+                    borderColor: borderColor,
+                    textStyle: TextStyle(fontSize: 13.5, color: textPrimary),
                     onChanged: (val) => setState(() => _selectedCategory = val),
                   ),
                   const SizedBox(height: 16),
@@ -924,27 +914,14 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedCondition,
-                    isExpanded: true,
-                    borderRadius: BorderRadius.circular(10),
-                    icon: Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: textSecondary,
-                    ),
-                    dropdownColor: fieldFillColor,
-                    style: TextStyle(fontSize: 13.5, color: textPrimary),
-                    decoration: _inputDecoration(
-                      'Pilih Kondisi Barang...',
-                      fillColor: fieldFillColor,
-                      borderColor: borderColor,
-                    ),
-                    items: _conditionOptions
-                        .map((cond) => DropdownMenuItem(
-                              value: cond,
-                              child: Text(cond),
-                            ))
-                        .toList(),
+                  CustomAppDropdown(
+                    value: _selectedCondition,
+                    items: _conditionOptions,
+                    hint: 'Pilih Kondisi Barang...',
+                    enabled: !_isSaving,
+                    fillColor: fieldFillColor,
+                    borderColor: borderColor,
+                    textStyle: TextStyle(fontSize: 13.5, color: textPrimary),
                     onChanged: (val) =>
                         setState(() => _selectedCondition = val),
                   ),

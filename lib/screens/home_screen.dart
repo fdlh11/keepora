@@ -30,14 +30,16 @@ class _HomeScreenState extends State<HomeScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'Semua';
 
-  // List kategori sesuai sistem yang sudah ada
+  // List kategori disamakan dengan DetailBarangScreen
   final List<String> _categories = const [
     'Semua',
     'Elektronik',
     'Kendaraan',
-    'Peralatan Rumah Tangga',
-    'Perkakas & Alat Kerja',
     'Furnitur',
+    'Peralatan Rumah',
+    'Gadget',
+    'Olahraga & Hobi',
+    'Umum',
     'Lainnya',
   ];
 
@@ -657,7 +659,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
-                    // Chip Kategori (Tetap memakai kategori bawaan)
+                    // Chip Kategori
                     SliverToBoxAdapter(
                       child: SizedBox(
                         height: 36,
@@ -805,9 +807,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             final lastMaint =
                                 (data['lastMaintenance'] ?? '-').toString();
 
+                            // Tampilkan rincian kondisi kapan pun diisi (termasuk saat kondisi Bagus)
                             final showConditionDetail =
-                                condition.toLowerCase() != 'bagus' &&
-                                    conditionDetail.isNotEmpty;
+                                conditionDetail.isNotEmpty;
 
                             final condTextColor =
                                 _getConditionTextColor(condition, isDark);
@@ -987,19 +989,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                             ),
                                           ),
 
-                                          // Rincian Kondisi (muncul otomatis jika kondisi selain Bagus)
+                                          // Rincian Kondisi (muncul otomatis jika diisi)
                                           if (showConditionDetail) ...[
-  const SizedBox(height: 3),
-  Text(
-    conditionDetail,
-    maxLines: 1,
-    overflow: TextOverflow.ellipsis,
-    style: TextStyle(
-      fontSize: 12,
-      color: textSecondary,
-    ),
-  ),
-],
+                                            const SizedBox(height: 3),
+                                            Text(
+                                              conditionDetail,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: textSecondary,
+                                              ),
+                                            ),
+                                          ],
                                         ],
                                       ),
                                     ),

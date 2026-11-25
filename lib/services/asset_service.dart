@@ -10,20 +10,20 @@ class AssetService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  static const List<String> _bulanIndo = [
+  static const List<String> _bulanSingkat = [
     '',
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
     'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
   ];
 
   String get _uid {
@@ -59,7 +59,7 @@ class AssetService {
   }
 
   String _formatTanggalIndo(DateTime date) {
-    return '${date.day} ${_bulanIndo[date.month]} ${date.year}';
+    return '${date.day} ${_bulanSingkat[date.month]} ${date.year}';
   }
 
   DateTime _extractHistoryDate(Map<String, dynamic> data) {

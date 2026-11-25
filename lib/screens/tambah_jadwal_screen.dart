@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../services/jadwal_service.dart';
 import '../utils/top_notif.dart';
+import '../utils/custom_app_dropdown.dart';
 
 class TambahJadwalScreen extends StatefulWidget {
   const TambahJadwalScreen({super.key});
@@ -34,20 +35,20 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
     'Pengecekan Rutin',
   ];
 
-  static const List<String> _bulanIndo = [
+  static const List<String> _bulanSingkat = [
     '',
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
     'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
   ];
 
   DateTime get _minScheduleDate {
@@ -180,7 +181,7 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
   }
 
   String _formatTanggal(DateTime date) {
-    return '${date.day} ${_bulanIndo[date.month]} ${date.year}';
+    return '${date.day} ${_bulanSingkat[date.month]} ${date.year}';
   }
 
   String _formatJam(TimeOfDay time) {
@@ -386,7 +387,6 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Nama Jadwal
                 _buildLabel('Nama Jadwal', textPrimary),
                 const SizedBox(height: 8),
                 TextField(
@@ -401,77 +401,52 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
 
                 const SizedBox(height: 16),
 
-                // Nama Barang
                 _buildLabel('Nama Barang', textPrimary),
                 const SizedBox(height: 8),
                 StreamBuilder(
                   stream: _jadwalService.streamDaftarBarang(),
                   builder: (context, snapshot) {
                     final docs = snapshot.data?.docs ?? [];
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: fieldFillColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: borderColor),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: docs.any((d) => d.id == _selectedAssetId)
-                              ? _selectedAssetId
-                              : null,
-                          isExpanded: true,
-                          dropdownColor: fieldFillColor,
-                          icon: Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: textSecondary,
-                          ),
-                          hint: Text(
-                            docs.isEmpty
-                                ? 'Belum ada data barang'
-                                : 'Pilih nama barang',
-                            style: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 13.5,
-                            ),
-                          ),
-                          items: docs.map((doc) {
-                            final data = doc.data() as Map<String, dynamic>?;
-                            final namaBarang =
-                                (data?['name'] ?? 'Tanpa Nama').toString();
-                            return DropdownMenuItem<String>(
-                              value: doc.id,
-                              child: Text(
-                                namaBarang,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: textPrimary,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: docs.isEmpty
-                              ? null
-                              : (val) {
-                                  final selectedDoc =
-                                      docs.firstWhere((d) => d.id == val);
-                                  final selectedData =
-                                      selectedDoc.data() as Map<String, dynamic>?;
-                                  setState(() {
-                                    _selectedAssetId = val;
-                                    _selectedAssetName =
-                                        (selectedData?['name'] ?? '').toString();
-                                  });
-                                },
-                        ),
-                      ),
+                    final assetNames = docs.map((doc) {
+                      final data = doc.data() as Map<String, dynamic>?;
+                      return (data?['name'] ?? 'Tanpa Nama').toString();
+                    }).toList();
+
+                    String? activeName;
+                    if (_selectedAssetId != null &&
+                        docs.any((d) => d.id == _selectedAssetId)) {
+                      final selectedDoc =
+                          docs.firstWhere((d) => d.id == _selectedAssetId);
+                      final selectedData =
+                          selectedDoc.data() as Map<String, dynamic>?;
+                      activeName = (selectedData?['name'] ?? '').toString();
+                    }
+
+                    return CustomAppDropdown(
+                      value: activeName,
+                      items: assetNames,
+                      hint: docs.isEmpty
+                          ? 'Belum ada data barang'
+                          : 'Pilih nama barang',
+                      enabled: !_isLoading && docs.isNotEmpty,
+                      fillColor: fieldFillColor,
+                      borderColor: borderColor,
+                      textStyle: TextStyle(fontSize: 14, color: textPrimary),
+                      onChanged: (selectedName) {
+                        final idx = assetNames.indexOf(selectedName);
+                        if (idx != -1) {
+                          setState(() {
+                            _selectedAssetId = docs[idx].id;
+                            _selectedAssetName = selectedName;
+                          });
+                        }
+                      },
                     );
                   },
                 ),
 
                 const SizedBox(height: 16),
 
-                // Tanggal & Jam Jadwal
                 Row(
                   children: [
                     Expanded(
@@ -572,53 +547,22 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
 
                 const SizedBox(height: 16),
 
-                // Jenis Perawatan
                 _buildLabel('Jenis Perawatan', textPrimary),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: fieldFillColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedJenisPerawatan,
-                      isExpanded: true,
-                      dropdownColor: fieldFillColor,
-                      icon: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: textSecondary,
-                      ),
-                      hint: Text(
-                        'Pilih jenis perawatan',
-                        style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 13.5,
-                        ),
-                      ),
-                      items: _jenisPerawatanList.map((jenis) {
-                        return DropdownMenuItem<String>(
-                          value: jenis,
-                          child: Text(
-                            jenis,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: textPrimary,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) =>
-                          setState(() => _selectedJenisPerawatan = val),
-                    ),
-                  ),
+                CustomAppDropdown(
+                  value: _selectedJenisPerawatan,
+                  items: _jenisPerawatanList,
+                  hint: 'Pilih jenis perawatan',
+                  enabled: !_isLoading,
+                  fillColor: fieldFillColor,
+                  borderColor: borderColor,
+                  textStyle: TextStyle(fontSize: 14, color: textPrimary),
+                  onChanged: (val) =>
+                      setState(() => _selectedJenisPerawatan = val),
                 ),
 
                 const SizedBox(height: 16),
 
-                // Estimasi Biaya Perawatan
                 _buildLabel('Estimasi Biaya Perawatan', textPrimary),
                 const SizedBox(height: 8),
                 TextField(
@@ -652,7 +596,6 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
 
                 const SizedBox(height: 16),
 
-                // Catatan Tambahan
                 _buildLabel('Catatan Tambahan (Opsional)', textPrimary),
                 const SizedBox(height: 8),
                 TextField(
@@ -668,7 +611,6 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
 
                 const SizedBox(height: 32),
 
-                // Tombol Tambah Jadwal
                 SizedBox(
                   width: double.infinity,
                   height: 52,

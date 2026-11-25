@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../services/jadwal_service.dart';
 import '../utils/top_notif.dart';
+import '../utils/custom_app_dropdown.dart';
 
 class DetailJadwalScreen extends StatefulWidget {
   final String scheduleId;
@@ -25,20 +26,20 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
   late Map<String, dynamic> _currentData;
   bool _isProcessing = false;
 
-  static const List<String> _bulanIndo = [
+  static const List<String> _bulanSingkat = [
     '',
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
     'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
   ];
 
   @override
@@ -48,7 +49,7 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
   }
 
   String _formatTanggal(DateTime date) {
-    return '${date.day} ${_bulanIndo[date.month]} ${date.year}';
+    return '${date.day} ${_bulanSingkat[date.month]} ${date.year}';
   }
 
   String _formatJam(DateTime date) {
@@ -265,12 +266,12 @@ class _DetailJadwalScreenState extends State<DetailJadwalScreen> {
         actions: [
           IconButton(
             onPressed: _isProcessing ? null : _bukaHalamanEdit,
-            icon: Icon(Icons.edit_outlined, color: Color(0xFF004AAD)),
+            icon: const Icon(Icons.edit_outlined, color: Color(0xFF004AAD)),
             tooltip: 'Edit Jadwal',
           ),
           IconButton(
             onPressed: _isProcessing ? null : _konfirmasiHapus,
-            icon: Icon(Icons.delete_outline, color: Colors.red),
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
             tooltip: 'Hapus Jadwal',
           ),
           const SizedBox(width: 4),
@@ -453,20 +454,20 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
     'Pengecekan Rutin',
   ];
 
-  static const List<String> _bulanIndo = [
+  static const List<String> _bulanSingkat = [
     '',
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
     'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
   ];
 
   DateTime get _minScheduleDate {
@@ -661,7 +662,7 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
   }
 
   String _formatTanggal(DateTime date) {
-    return '${date.day} ${_bulanIndo[date.month]} ${date.year}';
+    return '${date.day} ${_bulanSingkat[date.month]} ${date.year}';
   }
 
   String _formatJam(TimeOfDay time) {
@@ -861,68 +862,42 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                   stream: widget.jadwalService.streamDaftarBarang(),
                   builder: (context, snapshot) {
                     final docs = snapshot.data?.docs ?? [];
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: fieldBgColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: borderColor),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: docs.any((d) => d.id == _selectedAssetId)
-                              ? _selectedAssetId
-                              : null,
-                          dropdownColor:
-                              isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                          isExpanded: true,
-                          icon: Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: textSecondary,
-                          ),
-                          hint: Text(
-                            _selectedAssetName?.isNotEmpty == true
-                                ? _selectedAssetName!
-                                : (docs.isEmpty
-                                    ? 'Belum ada data barang'
-                                    : 'Pilih nama barang'),
-                            style: TextStyle(
-                              color: _selectedAssetName?.isNotEmpty == true
-                                  ? textPrimary
-                                  : Colors.grey.shade500,
-                              fontSize: 13.5,
-                            ),
-                          ),
-                          items: docs.map((doc) {
-                            final data = doc.data() as Map<String, dynamic>?;
-                            final namaBarang =
-                                (data?['name'] ?? 'Tanpa Nama').toString();
-                            return DropdownMenuItem<String>(
-                              value: doc.id,
-                              child: Text(
-                                namaBarang,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: textPrimary,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: docs.isEmpty
-                              ? null
-                              : (val) {
-                                  final selectedDoc =
-                                      docs.firstWhere((d) => d.id == val);
-                                  final selectedData =
-                                      selectedDoc.data() as Map<String, dynamic>?;
-                                  setState(() {
-                                    _selectedAssetId = val;
-                                    _selectedAssetName =
-                                        (selectedData?['name'] ?? '').toString();
-                                  });
-                                },
-                        ),
-                      ),
+                    final assetNames = docs.map((doc) {
+                      final data = doc.data() as Map<String, dynamic>?;
+                      return (data?['name'] ?? 'Tanpa Nama').toString();
+                    }).toList();
+
+                    String? activeName;
+                    if (_selectedAssetId != null &&
+                        docs.any((d) => d.id == _selectedAssetId)) {
+                      final selectedDoc =
+                          docs.firstWhere((d) => d.id == _selectedAssetId);
+                      final selectedData =
+                          selectedDoc.data() as Map<String, dynamic>?;
+                      activeName = (selectedData?['name'] ?? '').toString();
+                    }
+
+                    return CustomAppDropdown(
+                      value: activeName,
+                      items: assetNames,
+                      hint: _selectedAssetName?.isNotEmpty == true
+                          ? _selectedAssetName!
+                          : (docs.isEmpty
+                              ? 'Belum ada data barang'
+                              : 'Pilih nama barang'),
+                      enabled: !_isSaving && docs.isNotEmpty,
+                      fillColor: fieldBgColor,
+                      borderColor: borderColor,
+                      textStyle: TextStyle(fontSize: 14, color: textPrimary),
+                      onChanged: (selectedName) {
+                        final idx = assetNames.indexOf(selectedName);
+                        if (idx != -1) {
+                          setState(() {
+                            _selectedAssetId = docs[idx].id;
+                            _selectedAssetName = selectedName;
+                          });
+                        }
+                      },
                     );
                   },
                 ),
@@ -1019,42 +994,17 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                 const SizedBox(height: 16),
                 _buildLabel('Jenis Perawatan', isDark),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: fieldBgColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedJenisPerawatan,
-                      dropdownColor:
-                          isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                      isExpanded: true,
-                      icon: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: textSecondary,
-                      ),
-                      items: _jenisPerawatanList.map((jenis) {
-                        return DropdownMenuItem<String>(
-                          value: jenis,
-                          child: Text(
-                            jenis,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: textPrimary,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setState(() => _selectedJenisPerawatan = val);
-                        }
-                      },
-                    ),
-                  ),
+                CustomAppDropdown(
+                  value: _selectedJenisPerawatan,
+                  items: _jenisPerawatanList,
+                  hint: 'Pilih jenis perawatan',
+                  enabled: !_isSaving,
+                  fillColor: fieldBgColor,
+                  borderColor: borderColor,
+                  textStyle: TextStyle(fontSize: 14, color: textPrimary),
+                  onChanged: (val) {
+                    setState(() => _selectedJenisPerawatan = val);
+                  },
                 ),
                 const SizedBox(height: 16),
                 _buildLabel('Estimasi Biaya Perawatan', isDark),

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/asset_service.dart';
+import '../utils/custom_app_dropdown.dart';
 import '../utils/top_notif.dart';
 
 class DetailBarangScreen extends StatefulWidget {
@@ -17,7 +18,8 @@ class DetailBarangScreen extends StatefulWidget {
   State<DetailBarangScreen> createState() => _DetailBarangScreenState();
 }
 
-class _DetailBarangScreenState extends State<DetailBarangScreen> {
+class _DetailBarangScreenState extends State<DetailBarangScreen>
+    with SingleTickerProviderStateMixin {
   final AssetService _assetService = AssetService();
   late final Stream<QuerySnapshot> _assetsStream;
 
@@ -29,6 +31,15 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
       TextEditingController();
   final TextEditingController _maintenanceDetailController =
       TextEditingController();
+
+  // Controller & Overlay untuk Dropdown Pill Kategori
+  final LayerLink _categoryLayerLink = LayerLink();
+  final GlobalKey _categoryChipKey = GlobalKey();
+  OverlayEntry? _categoryOverlayEntry;
+  bool _isCategoryMenuOpen = false;
+  late final AnimationController _catAnimController;
+  late final Animation<double> _catFadeAnim;
+  late final Animation<double> _catScaleAnim;
 
   bool _isInitialized = false;
   bool _isSaving = false;
@@ -47,7 +58,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
   String _initialConditionDetail = '';
   String _initialMaintenanceDetail = '';
 
-  // Kategori barang
   static const List<String> _defaultCategories = [
     'Elektronik',
     'Kendaraan',
@@ -59,7 +69,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     'Lainnya',
   ];
 
-  // Pilihan kondisi barang
   static const List<String> _conditionOptions = [
     'Bagus',
     'Baret',
@@ -67,26 +76,63 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     'Rusak',
   ];
 
-  // List bulan
-  static const List<String> _bulanIndo = [
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
+  static const List<String> _bulanSingkat = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
     'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
   ];
+
+  static const Map<String, int> _mapBulanKeAngka = {
+    'jan': 1,
+    'januari': 1,
+    'feb': 2,
+    'februari': 2,
+    'mar': 3,
+    'maret': 3,
+    'apr': 4,
+    'april': 4,
+    'mei': 5,
+    'jun': 6,
+    'juni': 6,
+    'jul': 7,
+    'juli': 7,
+    'agu': 8,
+    'agustus': 8,
+    'sep': 9,
+    'september': 9,
+    'okt': 10,
+    'oktober': 10,
+    'nov': 11,
+    'november': 11,
+    'des': 12,
+    'desember': 12,
+  };
 
   @override
   void initState() {
     super.initState();
     _assetsStream = _assetService.getAssetsStream();
+    _catAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 160),
+    );
+    _catFadeAnim = CurvedAnimation(
+      parent: _catAnimController,
+      curve: Curves.easeOut,
+    );
+    _catScaleAnim = Tween<double>(begin: 0.95, end: 1.0).animate(
+      CurvedAnimation(parent: _catAnimController, curve: Curves.easeOutCubic),
+    );
+
     _nameFocusNode.addListener(() {
       if (!_nameFocusNode.hasFocus && mounted) {
         if (_nameController.text.trim().isEmpty) {
@@ -100,6 +146,8 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
 
   @override
   void dispose() {
+    _removeCategoryOverlayImmediate();
+    _catAnimController.dispose();
     _nameController.dispose();
     _nameFocusNode.dispose();
     _purchasePriceController.dispose();
@@ -108,20 +156,175 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     super.dispose();
   }
 
-  String _formatTanggalIndo(DateTime date) {
-    return '${date.day} ${_bulanIndo[date.month - 1]} ${date.year}';
+  void _removeCategoryOverlayImmediate() {
+    _categoryOverlayEntry?.remove();
+    _categoryOverlayEntry = null;
+    _isCategoryMenuOpen = false;
+  }
+
+  Future<void> _closeCategoryMenu() async {
+    if (!_isCategoryMenuOpen) return;
+    await _catAnimController.reverse();
+    _removeCategoryOverlayImmediate();
+    if (mounted) setState(() {});
+  }
+
+  void _toggleCategoryMenu(List<String> categoryOptions) {
+    if (_isSaving) return;
+    if (_isCategoryMenuOpen) {
+      _closeCategoryMenu();
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    final renderBox =
+        _categoryChipKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final chipSize = renderBox.size;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const primaryBlue = Color(0xFF004AAD);
+    final accentBlue = isDark ? const Color(0xFF60A5FA) : primaryBlue;
+    final menuBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final menuBorder =
+        isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0);
+    final textPrimary = isDark ? Colors.white : Colors.black87;
+    const double menuWidth = 190;
+
+    _categoryOverlayEntry = OverlayEntry(
+      builder: (overlayContext) {
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: _closeCategoryMenu,
+              ),
+            ),
+            CompositedTransformFollower(
+              link: _categoryLayerLink,
+              showWhenUnlinked: false,
+              offset: Offset(chipSize.width - menuWidth, chipSize.height + 6),
+              child: Material(
+                color: Colors.transparent,
+                child: FadeTransition(
+                  opacity: _catFadeAnim,
+                  child: ScaleTransition(
+                    scale: _catScaleAnim,
+                    alignment: Alignment.topRight,
+                    child: Container(
+                      width: menuWidth,
+                      constraints: const BoxConstraints(maxHeight: 205),
+                      decoration: BoxDecoration(
+                        color: menuBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: menuBorder),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: isDark ? 0.45 : 0.12,
+                            ),
+                            blurRadius: 14,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          shrinkWrap: true,
+                          itemCount: categoryOptions.length,
+                          separatorBuilder: (_, _) => Divider(
+                            height: 1,
+                            thickness: 0.5,
+                            color: isDark
+                                ? Colors.grey.shade800
+                                : Colors.grey.shade200,
+                          ),
+                          itemBuilder: (context, index) {
+                            final cat = categoryOptions[index];
+                            final isSelected = cat == _selectedCategory;
+
+                            return InkWell(
+                              onTap: () async {
+                                setState(() => _selectedCategory = cat);
+                                await _closeCategoryMenu();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 11,
+                                ),
+                                color: isSelected
+                                    ? primaryBlue.withValues(
+                                        alpha: isDark ? 0.22 : 0.08,
+                                      )
+                                    : Colors.transparent,
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        cat,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: isSelected
+                                              ? FontWeight.bold
+                                              : FontWeight.w500,
+                                          color: isSelected
+                                              ? accentBlue
+                                              : textPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                    if (isSelected)
+                                      Icon(
+                                        Icons.check_rounded,
+                                        size: 16,
+                                        color: accentBlue,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    Overlay.of(context).insert(_categoryOverlayEntry!);
+    setState(() => _isCategoryMenuOpen = true);
+    _catAnimController.forward();
+  }
+
+  String _formatTanggalSingkat(DateTime date) {
+    return '${date.day} ${_bulanSingkat[date.month - 1]} ${date.year}';
   }
 
   DateTime? _parseTanggalIndo(String dateStr) {
     final parts = dateStr.trim().split(' ');
     if (parts.length != 3) return null;
     final day = int.tryParse(parts[0]);
-    final monthIndex = _bulanIndo.indexWhere(
-      (b) => b.toLowerCase() == parts[1].toLowerCase(),
-    );
+    final month = _mapBulanKeAngka[parts[1].toLowerCase()];
     final year = int.tryParse(parts[2]);
-    if (day == null || monthIndex == -1 || year == null) return null;
-    return DateTime(year, monthIndex + 1, day);
+    if (day == null || month == null || year == null) return null;
+    return DateTime(year, month, day);
+  }
+
+  String _singkatkanTanggalString(String rawDate) {
+    final trimmed = rawDate.trim();
+    if (trimmed.isEmpty || trimmed == '-') return trimmed;
+    final parsed = _parseTanggalIndo(trimmed);
+    if (parsed != null) return _formatTanggalSingkat(parsed);
+    return trimmed;
   }
 
   String _formatRibuan(String digits) {
@@ -164,7 +367,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
       case 'Jelek':
         return 'Jelaskan bagian kondisi barang yang kurang baik...';
       default:
-        return 'Jelaskan rincian kondisi barang (opsional jika bagus)...';
+        return 'Jelaskan rincian kondisi barang...';
     }
   }
 
@@ -182,6 +385,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
   }
 
   Future<void> _pickPurchaseDate() async {
+    _removeCategoryOverlayImmediate();
     final now = DateTime.now();
     final initial = _selectedPurchaseDate ?? now;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -213,12 +417,13 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     if (picked != null && mounted) {
       setState(() {
         _selectedPurchaseDate = picked;
-        _purchaseDate = _formatTanggalIndo(picked);
+        _purchaseDate = _formatTanggalSingkat(picked);
       });
     }
   }
 
   Future<void> _handleBackPress() async {
+    _removeCategoryOverlayImmediate();
     if (!_hasUnsavedChanges) {
       Navigator.pop(context);
       return;
@@ -226,7 +431,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // pop up perubahan belum disimpan
     final bool? shouldLeave = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -334,8 +538,8 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
     }
   }
 
-  // pop up konfirmasi hapus barang
   Future<void> _confirmDeleteAsset() async {
+    _removeCategoryOverlayImmediate();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bool? confirmed = await showDialog<bool>(
       context: context,
@@ -446,6 +650,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
   }
 
   Future<void> _saveChanges(String purchaseType) async {
+    _removeCategoryOverlayImmediate();
     if (_isSaving) return;
 
     final updatedName = _nameController.text.trim();
@@ -479,7 +684,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
           ? 'Rp 0'
           : 'Rp ${_formatRibuan(rawPriceDigits)}';
       final updatedCategory = _selectedCategory.trim();
-      final updatedDate = _purchaseDate.trim();
+      final updatedDate = _singkatkanTanggalString(_purchaseDate.trim());
       final updatedDetail = _maintenanceDetailController.text.trim();
 
       final Map<String, dynamic> updatePayload = {
@@ -666,7 +871,9 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
         final purchaseType = (data['purchaseType'] ?? 'Baru').toString();
         final rawPurchaseDate = (data['purchaseDate'] ?? '-').toString();
         final rawPurchasePrice = (data['purchasePrice'] ?? 'Rp 0').toString();
-        final lastMaintenance = (data['lastMaintenance'] ?? '-').toString();
+        final lastMaintenance = _singkatkanTanggalString(
+          (data['lastMaintenance'] ?? '-').toString(),
+        );
         final lastMaintenanceCost =
             (data['lastMaintenanceCost'] ?? 'Rp 0').toString();
 
@@ -677,9 +884,9 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
           _initialCategory = rawCategory.isEmpty ? 'Umum' : rawCategory;
           _selectedCategory = _initialCategory;
 
-          _initialPurchaseDate = rawPurchaseDate;
-          _purchaseDate = rawPurchaseDate;
           _selectedPurchaseDate = _parseTanggalIndo(rawPurchaseDate);
+          _initialPurchaseDate = _singkatkanTanggalString(rawPurchaseDate);
+          _purchaseDate = _initialPurchaseDate;
 
           _initialPurchasePriceDigits = _extractDigits(rawPurchasePrice);
           _purchasePriceController.text =
@@ -784,65 +991,41 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                               ),
                             ),
                             const SizedBox(width: 10),
-                            PopupMenuButton<String>(
-                              enabled: !_isSaving,
-                              color: surfaceColor,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              onSelected: (newValue) {
-                                setState(() {
-                                  _selectedCategory = newValue;
-                                });
-                              },
-                              itemBuilder: (context) {
-                                return categoryOptions.map((cat) {
-                                  return PopupMenuItem<String>(
-                                    value: cat,
-                                    height: 40,
-                                    child: Text(
-                                      cat,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: cat == _selectedCategory
-                                            ? FontWeight.bold
-                                            : FontWeight.w500,
-                                        color: cat == _selectedCategory
-                                            ? (isDark
-                                                ? const Color(0xFF60A5FA)
-                                                : primaryBlue)
-                                            : (isDark
-                                                ? Colors.white
-                                                : Colors.black87),
-                                      ),
-                                    ),
-                                  );
-                                }).toList();
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? const Color(0xFF172554)
-                                      : const Color(0xFFDBEAFE),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: isDark
-                                        ? const Color(0xFF1D4ED8)
-                                        : const Color(0xFF93C5FD),
+                            CompositedTransformTarget(
+                              link: _categoryLayerLink,
+                              child: GestureDetector(
+                                key: _categoryChipKey,
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () =>
+                                    _toggleCategoryMenu(categoryOptions),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 5,
                                   ),
-                                ),
-                                child: Text(
-                                  _selectedCategory,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
+                                  decoration: BoxDecoration(
                                     color: isDark
-                                        ? const Color(0xFF60A5FA)
-                                        : primaryBlue,
+                                        ? const Color(0xFF172554)
+                                        : const Color(0xFFDBEAFE),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: _isCategoryMenuOpen
+                                          ? primaryBlue
+                                          : (isDark
+                                              ? const Color(0xFF1D4ED8)
+                                              : const Color(0xFF93C5FD)),
+                                      width: _isCategoryMenuOpen ? 1.4 : 1.0,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _selectedCategory,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? const Color(0xFF60A5FA)
+                                          : primaryBlue,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -977,39 +1160,21 @@ class _DetailBarangScreenState extends State<DetailBarangScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedCondition,
-                          isExpanded: true,
-                          borderRadius: BorderRadius.circular(10),
-                          icon: Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: isDark
-                                ? Colors.grey.shade400
-                                : Colors.grey.shade600,
-                          ),
-                          dropdownColor: surfaceColor,
-                          style: TextStyle(
+                        CustomAppDropdown(
+                          value: _selectedCondition,
+                          items: conditionDropdownOptions,
+                          hint: 'Pilih kondisi barang...',
+                          enabled: !_isSaving,
+                          fillColor: surfaceColor,
+                          borderColor: borderColor,
+                          textStyle: TextStyle(
                             fontSize: 13.5,
                             fontWeight: FontWeight.bold,
                             color: isDark ? Colors.white : Colors.black87,
                           ),
-                          decoration: _editableBoxDecoration(
-                            'Pilih kondisi barang...',
-                            isDark,
-                          ),
-                          items: conditionDropdownOptions
-                              .map((cond) => DropdownMenuItem<String>(
-                                    value: cond,
-                                    child: Text(cond),
-                                  ))
-                              .toList(),
-                          onChanged: _isSaving
-                              ? null
-                              : (val) {
-                                  if (val != null) {
-                                    setState(() => _selectedCondition = val);
-                                  }
-                                },
+                          onChanged: (val) {
+                            setState(() => _selectedCondition = val);
+                          },
                         ),
                         const SizedBox(height: 18),
                         Text(

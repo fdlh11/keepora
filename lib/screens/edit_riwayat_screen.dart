@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../services/asset_service.dart';
 import '../utils/top_notif.dart';
+import '../utils/custom_app_dropdown.dart';
 
 class EditRiwayatScreen extends StatefulWidget {
   final String assetId;
@@ -49,20 +50,20 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
     'Pengecekan Rutin',
   ];
 
-  static const List<String> _bulanIndo = [
+  static const List<String> _bulanSingkat = [
     '',
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
     'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
   ];
 
   @override
@@ -259,7 +260,7 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
   }
 
   String _formatTanggal(DateTime dt) {
-    return '${dt.day} ${_bulanIndo[dt.month]} ${dt.year}';
+    return '${dt.day} ${_bulanSingkat[dt.month]} ${dt.year}';
   }
 
   String _formatJam(TimeOfDay time) {
@@ -436,38 +437,17 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                 const SizedBox(height: 16),
                 _buildLabel('Jenis Perawatan', textPrimary),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: fieldFillColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedJenisPerawatan,
-                      isExpanded: true,
-                      dropdownColor: fieldFillColor,
-                      icon: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: isDark
-                            ? Colors.grey.shade400
-                            : Colors.grey.shade600,
-                      ),
-                      style: TextStyle(fontSize: 13.5, color: textFieldColor),
-                      items: _jenisPerawatanOptions.map((jenis) {
-                        return DropdownMenuItem<String>(
-                          value: jenis,
-                          child: Text(jenis),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setState(() => _selectedJenisPerawatan = val);
-                        }
-                      },
-                    ),
-                  ),
+                CustomAppDropdown(
+                  value: _selectedJenisPerawatan,
+                  items: _jenisPerawatanOptions,
+                  hint: 'Pilih jenis perawatan',
+                  enabled: !_isSaving,
+                  fillColor: fieldFillColor,
+                  borderColor: borderColor,
+                  textStyle: TextStyle(fontSize: 13.5, color: textFieldColor),
+                  onChanged: (val) {
+                    setState(() => _selectedJenisPerawatan = val);
+                  },
                 ),
                 const SizedBox(height: 16),
                 Row(
