@@ -372,6 +372,8 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
     final textPrimary = theme.colorScheme.onSurface;
     final textFieldColor =
         isDark ? Colors.grey.shade200 : Colors.grey.shade800;
+    final textSecondary =
+        isDark ? Colors.grey.shade400 : Colors.grey.shade600;
     final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade400;
 
     return PopScope(
@@ -465,20 +467,31 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                             child: Container(
                               height: 48,
                               padding:
-                                  const EdgeInsets.symmetric(horizontal: 14),
+                                  const EdgeInsets.symmetric(horizontal: 12),
                               decoration: BoxDecoration(
                                 color: fieldFillColor,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: borderColor),
                               ),
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                _formatTanggal(_selectedDate),
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 13.5,
-                                  color: textFieldColor,
-                                ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _formatTanggal(_selectedDate),
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        color: textFieldColor,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    Icons.calendar_today_outlined,
+                                    size: 18,
+                                    color: textSecondary,
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -499,20 +512,31 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
                             child: Container(
                               height: 48,
                               padding:
-                                  const EdgeInsets.symmetric(horizontal: 14),
+                                  const EdgeInsets.symmetric(horizontal: 12),
                               decoration: BoxDecoration(
                                 color: fieldFillColor,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: borderColor),
                               ),
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                _formatJam(_selectedTime),
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 13.5,
-                                  color: textFieldColor,
-                                ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _formatJam(_selectedTime),
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        color: textFieldColor,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    Icons.access_time_rounded,
+                                    size: 18,
+                                    color: textSecondary,
+                                  ),
+                                ],
                               ),
                             ),
                           ),

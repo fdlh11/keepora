@@ -90,7 +90,8 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
       addMonth(dt);
     }
 
-    result.sort((a, b) => b.compareTo(a));
+    // Urutkan kronologis dari bulan lalu (atas) ke bulan terbaru (bawah)
+    result.sort((a, b) => a.compareTo(b));
     return result;
   }
 
@@ -228,7 +229,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                 m.year == _selectedMonthYear.year &&
                 m.month == _selectedMonthYear.month,
           )) {
-            _selectedMonthYear = monthOptions.first;
+            _selectedMonthYear = monthOptions.last;
           }
 
           int totalMonthlySpend = 0;
@@ -290,8 +291,9 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                     m.year == _selectedMonthYear.year &&
                                     m.month == _selectedMonthYear.month,
                               ),
-                              menuMaxHeight: 220, // Membatasi tinggi agar tidak nutup layar & bisa di-scroll
-                              borderRadius: BorderRadius.circular(12),
+                              menuMaxHeight: 380,
+                              itemHeight: 48,
+                              borderRadius: BorderRadius.circular(14),
                               dropdownColor: primaryBlue,
                               icon: const Icon(
                                 Icons.keyboard_arrow_down_rounded,
