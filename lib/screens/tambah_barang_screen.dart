@@ -394,7 +394,7 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
   String _formatTanggalIndo(DateTime date) {
     return '${date.day} ${_bulanSingkat[date.month - 1]} ${date.year}';
   }
-  
+
   String _formatRibuan(String digits) {
     final buffer = StringBuffer();
     for (int i = 0; i < digits.length; i++) {
@@ -453,6 +453,19 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
   }
 
   Future<void> _saveAsset() async {
+    final rawPriceCheck =
+        _priceController.text.replaceAll(RegExp(r'[^0-9]'), '').trim();
+    final int parsedPrice = int.tryParse(rawPriceCheck) ?? 0;
+    if (parsedPrice > 0 && parsedPrice < 1000) {
+      _formKey.currentState?.validate();
+      showTopNotif(
+        context,
+        'Harga beli minimal Rp 1.000 (atau isi Rp 0 jika gratis).',
+        isError: true,
+      );
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedCategory == null) {
@@ -501,9 +514,8 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
             await _assetService.uploadAssetImage(_selectedImage!);
       }
 
-      final rawPrice = _priceController.text.replaceAll('.', '').trim();
       final formattedPrice =
-          rawPrice.isEmpty ? 'Rp 0' : 'Rp ${_formatRibuan(rawPrice)}';
+          parsedPrice == 0 ? 'Rp 0' : 'Rp ${_formatRibuan(parsedPrice.toString())}';
 
       final bool isSecondHand = _secondHandPurchaseDate != null;
       final String activeDateFormatted = isSecondHand
@@ -875,10 +887,17 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
                                 FilteringTextInputFormatter.digitsOnly,
                                 _RibuanFormatter(),
                               ],
-                              validator: (val) =>
-                                  (val == null || val.trim().isEmpty)
-                                      ? 'Wajib diisi'
-                                      : null,
+                              validator: (val) {
+                                final raw = (val ?? '').trim();
+                                if (raw.isEmpty) return 'Wajib diisi';
+                                final digits =
+                                    raw.replaceAll(RegExp(r'[^0-9]'), '');
+                                final price = int.tryParse(digits) ?? 0;
+                                if (price > 0 && price < 1000) {
+                                  return 'Min. Rp 1.000 / 0';
+                                }
+                                return null;
+                              },
                               decoration: _inputDecoration(
                                 '0',
                                 prefixIcon: Padding(

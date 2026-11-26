@@ -989,6 +989,17 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
       return;
     }
 
+    final rawPriceDigits = _extractDigits(_purchasePriceController.text);
+    final int parsedPrice = int.tryParse(rawPriceDigits) ?? 0;
+    if (parsedPrice > 0 && parsedPrice < 1000) {
+      showTopNotif(
+        context,
+        'Harga pembelian minimal Rp 1.000 (atau isi Rp 0 jika gratis).',
+        isError: true,
+      );
+      return;
+    }
+
     _nameFocusNode.unfocus();
     setState(() => _isSaving = true);
 
@@ -999,10 +1010,9 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
             await _assetService.uploadAssetImage(_newSelectedImage!);
       }
 
-      final rawPriceDigits = _extractDigits(_purchasePriceController.text);
-      final formattedPrice = rawPriceDigits.isEmpty
-          ? 'Rp 0'
-          : 'Rp ${_formatRibuan(rawPriceDigits)}';
+      final cleanDigits = parsedPrice == 0 ? '' : parsedPrice.toString();
+      final formattedPrice =
+          parsedPrice == 0 ? 'Rp 0' : 'Rp ${_formatRibuan(cleanDigits)}';
       final updatedCategory = _selectedCategory.trim();
       final updatedDate = _singkatkanTanggalString(_purchaseDate.trim());
       final updatedDetail = _maintenanceDetailController.text.trim();
@@ -1031,7 +1041,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
       _initialName = updatedName;
       _initialCategory = updatedCategory;
       _initialPurchaseDate = updatedDate;
-      _initialPurchasePriceDigits = rawPriceDigits;
+      _initialPurchasePriceDigits = cleanDigits;
       _initialCondition = updatedCondition;
       _initialConditionDetail = updatedConditionDetail;
       _initialMaintenanceDetail = updatedDetail;

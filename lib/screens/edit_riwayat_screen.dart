@@ -322,6 +322,18 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
       return;
     }
 
+    final digits =
+        _biayaController.text.replaceAll(RegExp(r'[^0-9]'), '').trim();
+    final int costInt = int.tryParse(digits) ?? 0;
+    if (costInt > 0 && costInt < 1000) {
+      showTopNotif(
+        context,
+        'Biaya perawatan minimal Rp 1.000 (atau isi Rp 0 jika tanpa biaya).',
+        isError: true,
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
       final combinedDateTime = DateTime(
@@ -331,10 +343,6 @@ class _EditRiwayatScreenState extends State<EditRiwayatScreen> {
         _selectedTime.hour,
         _selectedTime.minute,
       );
-
-      final digits =
-          _biayaController.text.replaceAll(RegExp(r'[^0-9]'), '').trim();
-      final int costInt = int.tryParse(digits) ?? 0;
 
       await widget.assetService.updateMaintenanceRecord(
         assetId: widget.assetId,

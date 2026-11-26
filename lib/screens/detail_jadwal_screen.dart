@@ -745,6 +745,18 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
       return;
     }
 
+    final cleanDigits =
+        _estimasiBiayaController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final int parsedCost = int.tryParse(cleanDigits) ?? 0;
+    if (parsedCost > 0 && parsedCost < 1000) {
+      showTopNotif(
+        context,
+        'Estimasi biaya minimal Rp 1.000 (atau isi Rp 0 jika tanpa biaya).',
+        isError: true,
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
       final scheduledAt = DateTime(
@@ -755,9 +767,7 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
         _selectedTime.minute,
       );
 
-      final cleanDigits =
-          _estimasiBiayaController.text.replaceAll(RegExp(r'[^0-9]'), '');
-      final double estimatedCost = double.tryParse(cleanDigits) ?? 0;
+      final double estimatedCost = parsedCost.toDouble();
 
       await widget.jadwalService.updateJadwal(
         scheduleId: widget.scheduleId,
@@ -1015,7 +1025,7 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onChanged: _onBiayaChanged,
                   style: TextStyle(fontSize: 14, color: textPrimary),
-                  decoration: _inputDecoration('00000', isDark).copyWith(
+                  decoration: _inputDecoration('0', isDark).copyWith(
                     prefixIcon: Padding(
                       padding: const EdgeInsets.only(left: 14, right: 4),
                       child: Text(

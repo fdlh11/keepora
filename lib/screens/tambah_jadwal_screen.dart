@@ -297,6 +297,18 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
       return;
     }
 
+    final cleanDigits =
+        _estimasiBiayaController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final int parsedCost = int.tryParse(cleanDigits) ?? 0;
+    if (parsedCost > 0 && parsedCost < 1000) {
+      showTopNotif(
+        context,
+        'Estimasi biaya minimal Rp 1.000 (atau isi Rp 0 jika tanpa biaya).',
+        isError: true,
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -308,9 +320,7 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
         _selectedTime!.minute,
       );
 
-      final cleanDigits =
-          _estimasiBiayaController.text.replaceAll(RegExp(r'[^0-9]'), '');
-      final double estimatedCost = double.tryParse(cleanDigits) ?? 0;
+      final double estimatedCost = parsedCost.toDouble();
 
       await _jadwalService.tambahJadwal(
         title: namaJadwal,
