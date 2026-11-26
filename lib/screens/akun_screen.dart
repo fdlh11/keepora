@@ -251,7 +251,6 @@ class _AkunScreenState extends State<AkunScreen> {
         (user?.displayName != null && user!.displayName!.isNotEmpty)
             ? user.displayName!
             : (user?.email?.split('@').first ?? 'Pengguna Keepora');
-    final email = user?.email ?? '-';
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor =
@@ -292,6 +291,10 @@ class _AkunScreenState extends State<AkunScreen> {
               (_cachedUserData['name'] ?? fallbackName).toString();
           final birthDate = (_cachedUserData['birthDate'] ?? '').toString();
           final photoUrl = (_cachedUserData['photoUrl'] ?? '').toString();
+          final firestoreEmail = (_cachedUserData['email'] ?? '').toString();
+          final email = firestoreEmail.isNotEmpty
+              ? firestoreEmail
+              : (user?.email ?? '-');
 
           return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
