@@ -35,7 +35,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
   final TextEditingController _maintenanceDetailController =
       TextEditingController();
 
-  // Controller & Overlay untuk Dropdown Pill Kategori
   final LayerLink _categoryLayerLink = LayerLink();
   final GlobalKey _categoryChipKey = GlobalKey();
   OverlayEntry? _categoryOverlayEntry;
@@ -46,8 +45,14 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
 
   bool _isInitialized = false;
   bool _isSaving = false;
+  bool _submitted = false;
   Map<String, dynamic>? _cachedAssetData;
   File? _newSelectedImage;
+
+  String? _nameError;
+  String? _purchaseDateError;
+  String? _priceError;
+  String? _conditionDetailError;
 
   String _selectedCategory = 'Umum';
   String _selectedCondition = 'Bagus';
@@ -136,16 +141,6 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
     _catScaleAnim = Tween<double>(begin: 0.95, end: 1.0).animate(
       CurvedAnimation(parent: _catAnimController, curve: Curves.easeOutCubic),
     );
-
-    _nameFocusNode.addListener(() {
-      if (!_nameFocusNode.hasFocus && mounted) {
-        if (_nameController.text.trim().isEmpty) {
-          setState(() {
-            _nameController.text = _initialName;
-          });
-        }
-      }
-    });
   }
 
   @override
@@ -158,6 +153,64 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
     _conditionDetailController.dispose();
     _maintenanceDetailController.dispose();
     super.dispose();
+  }
+
+  bool _validateForm() {
+    final name = _nameController.text.trim();
+    final dateStr = _purchaseDate.trim();
+    final rawPriceDigits = _extractDigits(_purchasePriceController.text);
+    final int parsedPrice = int.tryParse(rawPriceDigits) ?? 0;
+    final cond = _selectedCondition.trim();
+    final condDetail = _conditionDetailController.text.trim();
+
+    String? nameErr;
+    if (name.isEmpty) {
+      nameErr = 'Nama barang wajib diisi';
+    }
+
+    String? dateErr;
+    if (dateStr.isEmpty || dateStr == '-') {
+      dateErr = 'Tanggal pembelian wajib diisi';
+    }
+
+    String? priceErr;
+    if (rawPriceDigits.isEmpty) {
+      priceErr = 'Wajib diisi';
+    } else if (parsedPrice > 0 && parsedPrice < 1000) {
+      priceErr = 'Min. Rp 1.000 / 0';
+    }
+
+    String? condDetailErr;
+    if (cond != 'Bagus' && condDetail.isEmpty) {
+      condDetailErr = 'Rincian kondisi wajib diisi untuk status $cond';
+    }
+
+    setState(() {
+      _nameError = nameErr;
+      _purchaseDateError = dateErr;
+      _priceError = priceErr;
+      _conditionDetailError = condDetailErr;
+    });
+
+    return nameErr == null &&
+        dateErr == null &&
+        priceErr == null &&
+        condDetailErr == null;
+  }
+
+  Widget _buildErrorText(String? errorText) {
+    if (errorText == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, left: 4),
+      child: Text(
+        errorText,
+        style: const TextStyle(
+          color: Colors.redAccent,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
   }
 
   void _removeCategoryOverlayImmediate() {
@@ -732,6 +785,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
       setState(() {
         _selectedPurchaseDate = picked;
         _purchaseDate = _formatTanggalSingkat(picked);
+        if (_submitted) _purchaseDateError = null;
       });
     }
   }
@@ -967,38 +1021,14 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
     _removeCategoryOverlayImmediate();
     if (_isSaving) return;
 
-    final updatedName = _nameController.text.trim();
-    if (updatedName.isEmpty) {
-      showTopNotif(
-        context,
-        'Nama barang tidak boleh kosong.',
-        isError: true,
-      );
-      return;
-    }
+    setState(() => _submitted = true);
+    if (!_validateForm()) return;
 
+    final updatedName = _nameController.text.trim();
     final updatedCondition = _selectedCondition.trim();
     final updatedConditionDetail = _conditionDetailController.text.trim();
-
-    if (updatedCondition != 'Bagus' && updatedConditionDetail.isEmpty) {
-      showTopNotif(
-        context,
-        'Harap isi rincian kondisi untuk barang dengan status $updatedCondition.',
-        isError: true,
-      );
-      return;
-    }
-
     final rawPriceDigits = _extractDigits(_purchasePriceController.text);
     final int parsedPrice = int.tryParse(rawPriceDigits) ?? 0;
-    if (parsedPrice > 0 && parsedPrice < 1000) {
-      showTopNotif(
-        context,
-        'Harga pembelian minimal Rp 1.000 (atau isi Rp 0 jika gratis).',
-        isError: true,
-      );
-      return;
-    }
 
     _nameFocusNode.unfocus();
     setState(() => _isSaving = true);
@@ -1106,9 +1136,13 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
     String hint,
     bool isDark, {
     String? prefixText,
+    bool hasError = false,
   }) {
-    final borderColor =
+    final defaultBorderColor =
         isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0);
+    final activeBorderColor = hasError ? Colors.redAccent : defaultBorderColor;
+    final activeWidth = hasError ? 1.3 : 1.0;
+
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
@@ -1123,15 +1157,18 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: borderColor),
+        borderSide: BorderSide(color: activeBorderColor, width: activeWidth),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: borderColor),
+        borderSide: BorderSide(color: activeBorderColor, width: activeWidth),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF004AAD), width: 1.4),
+        borderSide: BorderSide(
+          color: hasError ? Colors.redAccent : const Color(0xFF004AAD),
+          width: 1.5,
+        ),
       ),
     );
   }
@@ -1361,17 +1398,58 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
                                 maxLines: null,
                                 textInputAction: TextInputAction.done,
                                 onSubmitted: (_) => _nameFocusNode.unfocus(),
+                                onChanged: (_) {
+                                  if (_submitted) _validateForm();
+                                },
                                 style: GoogleFonts.montserrat(
                                   fontSize: 18.5,
                                   fontWeight: FontWeight.bold,
                                   color: textPrimary,
                                 ),
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
+                                  hintText: 'Masukkan nama barang...',
+                                  hintStyle: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey.shade500,
+                                  ),
                                   isDense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
+                                  contentPadding: _nameError != null
+                                      ? const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 10,
+                                        )
+                                      : EdgeInsets.zero,
+                                  border: _nameError != null
+                                      ? OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          borderSide: const BorderSide(
+                                            color: Colors.redAccent,
+                                            width: 1.3,
+                                          ),
+                                        )
+                                      : InputBorder.none,
+                                  enabledBorder: _nameError != null
+                                      ? OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          borderSide: const BorderSide(
+                                            color: Colors.redAccent,
+                                            width: 1.3,
+                                          ),
+                                        )
+                                      : InputBorder.none,
+                                  focusedBorder: _nameError != null
+                                      ? OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          borderSide: const BorderSide(
+                                            color: Colors.redAccent,
+                                            width: 1.5,
+                                          ),
+                                        )
+                                      : InputBorder.none,
                                   disabledBorder: InputBorder.none,
                                 ),
                               ),
@@ -1418,6 +1496,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
                             ),
                           ],
                         ),
+                        _buildErrorText(_nameError),
                         const SizedBox(height: 18),
                         Text(
                           'Informasi Pembelian',
@@ -1459,22 +1538,33 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
                                       decoration: BoxDecoration(
                                         color: surfaceColor,
                                         borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: borderColor),
+                                        border: Border.all(
+                                          color: _purchaseDateError != null
+                                              ? Colors.redAccent
+                                              : borderColor,
+                                          width: _purchaseDateError != null
+                                              ? 1.3
+                                              : 1.0,
+                                        ),
                                       ),
                                       child: Row(
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              _purchaseDate.isEmpty
+                                              _purchaseDate.isEmpty ||
+                                                      _purchaseDate == '-'
                                                   ? 'Pilih tanggal...'
                                                   : _purchaseDate,
                                               overflow: TextOverflow.ellipsis,
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.bold,
-                                                color: isDark
-                                                    ? Colors.white
-                                                    : Colors.black87,
+                                                color: (_purchaseDate.isEmpty ||
+                                                        _purchaseDate == '-')
+                                                    ? Colors.grey.shade500
+                                                    : (isDark
+                                                        ? Colors.white
+                                                        : Colors.black87),
                                               ),
                                             ),
                                           ),
@@ -1490,6 +1580,7 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
                                       ),
                                     ),
                                   ),
+                                  _buildErrorText(_purchaseDateError),
                                 ],
                               ),
                             ),
@@ -1517,6 +1608,9 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
                                         FilteringTextInputFormatter.digitsOnly,
                                         _RibuanFormatter(),
                                       ],
+                                      onChanged: (_) {
+                                        if (_submitted) _validateForm();
+                                      },
                                       style: TextStyle(
                                         fontSize: 13.5,
                                         fontWeight: FontWeight.bold,
@@ -1528,9 +1622,11 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
                                         '0',
                                         isDark,
                                         prefixText: 'Rp ',
+                                        hasError: _priceError != null,
                                       ),
                                     ),
                                   ),
+                                  _buildErrorText(_priceError),
                                 ],
                               ),
                             ),
@@ -1559,7 +1655,10 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
                             color: isDark ? Colors.white : Colors.black87,
                           ),
                           onChanged: (val) {
-                            setState(() => _selectedCondition = val);
+                            setState(() {
+                              _selectedCondition = val;
+                              if (_submitted) _validateForm();
+                            });
                           },
                         ),
                         const SizedBox(height: 18),
@@ -1576,6 +1675,9 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
                           controller: _conditionDetailController,
                           maxLines: 3,
                           minLines: 2,
+                          onChanged: (_) {
+                            if (_submitted) _validateForm();
+                          },
                           style: TextStyle(
                             fontSize: 13.5,
                             color: isDark ? Colors.white : Colors.black87,
@@ -1584,8 +1686,10 @@ class _DetailBarangScreenState extends State<DetailBarangScreen>
                           decoration: _editableBoxDecoration(
                             _getConditionDetailHint(),
                             isDark,
+                            hasError: _conditionDetailError != null,
                           ),
                         ),
+                        _buildErrorText(_conditionDetailError),
                         const SizedBox(height: 18),
                         Text(
                           'Catatan Perawatan Terakhir',

@@ -26,6 +26,14 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
   TimeOfDay? _selectedTime;
   String? _selectedJenisPerawatan;
   bool _isLoading = false;
+  bool _submitted = false;
+
+  String? _namaJadwalError;
+  String? _assetError;
+  String? _dateError;
+  String? _timeError;
+  String? _jenisError;
+  String? _biayaError;
 
   final List<String> _jenisPerawatanList = const [
     'Perawatan',
@@ -64,6 +72,85 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
         _selectedJenisPerawatan != null ||
         _estimasiBiayaController.text.trim().isNotEmpty ||
         _catatanController.text.trim().isNotEmpty;
+  }
+
+  bool _validateForm() {
+    final namaJadwal = _namaJadwalController.text.trim();
+    final cleanDigits =
+        _estimasiBiayaController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final int parsedCost = int.tryParse(cleanDigits) ?? 0;
+
+    String? namaErr;
+    if (namaJadwal.isEmpty) {
+      namaErr = 'Nama jadwal wajib diisi';
+    }
+
+    String? assetErr;
+    if (_selectedAssetId == null || _selectedAssetId!.isEmpty) {
+      assetErr = 'Nama barang wajib dipilih';
+    }
+
+    String? dateErr;
+    if (_selectedDate == null) {
+      dateErr = 'Tanggal wajib dipilih';
+    } else {
+      final pickedDay = DateTime(
+        _selectedDate!.year,
+        _selectedDate!.month,
+        _selectedDate!.day,
+      );
+      if (pickedDay.isBefore(_minScheduleDate)) {
+        dateErr = 'Minimal tanggal besok';
+      }
+    }
+
+    String? timeErr;
+    if (_selectedTime == null) {
+      timeErr = 'Jam wajib dipilih';
+    }
+
+    String? jenisErr;
+    if (_selectedJenisPerawatan == null || _selectedJenisPerawatan!.isEmpty) {
+      jenisErr = 'Jenis perawatan wajib dipilih';
+    }
+
+    String? biayaErr;
+    if (cleanDigits.isEmpty) {
+      biayaErr = 'Estimasi biaya wajib diisi';
+    } else if (parsedCost > 0 && parsedCost < 1000) {
+      biayaErr = 'Estimasi biaya minimal Rp 1.000 (atau Rp 0)';
+    }
+
+    setState(() {
+      _namaJadwalError = namaErr;
+      _assetError = assetErr;
+      _dateError = dateErr;
+      _timeError = timeErr;
+      _jenisError = jenisErr;
+      _biayaError = biayaErr;
+    });
+
+    return namaErr == null &&
+        assetErr == null &&
+        dateErr == null &&
+        timeErr == null &&
+        jenisErr == null &&
+        biayaErr == null;
+  }
+
+  Widget _buildErrorText(String? errorText) {
+    if (errorText == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, left: 4),
+      child: Text(
+        errorText,
+        style: const TextStyle(
+          color: Colors.redAccent,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
   }
 
   Future<void> _handleBackPress() async {
@@ -210,6 +297,7 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
         selection: TextSelection.collapsed(offset: formatted.length),
       );
     }
+    if (_submitted) _validateForm();
   }
 
   Future<void> _pilihTanggal() async {
@@ -239,7 +327,10 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
       },
     );
     if (picked != null) {
-      setState(() => _selectedDate = picked);
+      setState(() {
+        _selectedDate = picked;
+        if (_submitted) _validateForm();
+      });
     }
   }
 
@@ -263,51 +354,21 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
       },
     );
     if (picked != null) {
-      setState(() => _selectedTime = picked);
+      setState(() {
+        _selectedTime = picked;
+        if (_submitted) _timeError = null;
+      });
     }
   }
 
   Future<void> _simpanJadwal() async {
+    setState(() => _submitted = true);
+    if (!_validateForm()) return;
+
     final namaJadwal = _namaJadwalController.text.trim();
-
-    if (namaJadwal.isEmpty ||
-        _selectedAssetId == null ||
-        _selectedDate == null ||
-        _selectedTime == null ||
-        _selectedJenisPerawatan == null) {
-      showTopNotif(
-        context,
-        'Harap lengkapi semua kolom wajib terlebih dahulu.',
-        isError: true,
-      );
-      return;
-    }
-
-    final pickedDay = DateTime(
-      _selectedDate!.year,
-      _selectedDate!.month,
-      _selectedDate!.day,
-    );
-    if (pickedDay.isBefore(_minScheduleDate)) {
-      showTopNotif(
-        context,
-        'Tanggal jadwal harus untuk masa mendatang (minimal besok).',
-        isError: true,
-      );
-      return;
-    }
-
     final cleanDigits =
         _estimasiBiayaController.text.replaceAll(RegExp(r'[^0-9]'), '');
     final int parsedCost = int.tryParse(cleanDigits) ?? 0;
-    if (parsedCost > 0 && parsedCost < 1000) {
-      showTopNotif(
-        context,
-        'Estimasi biaya minimal Rp 1.000 (atau isi Rp 0 jika tanpa biaya).',
-        isError: true,
-      );
-      return;
-    }
 
     setState(() => _isLoading = true);
 
@@ -402,12 +463,17 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                 TextField(
                   controller: _namaJadwalController,
                   style: TextStyle(fontSize: 14, color: textPrimary),
+                  onChanged: (_) {
+                    if (_submitted) _validateForm();
+                  },
                   decoration: _inputDecoration(
                     'Masukkan nama jadwal...',
                     fillColor: fieldFillColor,
                     borderColor: borderColor,
+                    hasError: _namaJadwalError != null,
                   ),
                 ),
+                _buildErrorText(_namaJadwalError),
 
                 const SizedBox(height: 16),
 
@@ -440,7 +506,8 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                           : 'Pilih nama barang',
                       enabled: !_isLoading && docs.isNotEmpty,
                       fillColor: fieldFillColor,
-                      borderColor: borderColor,
+                      borderColor:
+                          _assetError != null ? Colors.redAccent : borderColor,
                       textStyle: TextStyle(fontSize: 14, color: textPrimary),
                       onChanged: (selectedName) {
                         final idx = assetNames.indexOf(selectedName);
@@ -448,16 +515,19 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                           setState(() {
                             _selectedAssetId = docs[idx].id;
                             _selectedAssetName = selectedName;
+                            if (_submitted) _assetError = null;
                           });
                         }
                       },
                     );
                   },
                 ),
+                _buildErrorText(_assetError),
 
                 const SizedBox(height: 16),
 
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       flex: 6,
@@ -475,7 +545,12 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                               decoration: BoxDecoration(
                                 color: fieldFillColor,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: borderColor),
+                                border: Border.all(
+                                  color: _dateError != null
+                                      ? Colors.redAccent
+                                      : borderColor,
+                                  width: _dateError != null ? 1.3 : 1.0,
+                                ),
                               ),
                               child: Row(
                                 children: [
@@ -502,6 +577,7 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                               ),
                             ),
                           ),
+                          _buildErrorText(_dateError),
                         ],
                       ),
                     ),
@@ -522,7 +598,12 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                               decoration: BoxDecoration(
                                 color: fieldFillColor,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: borderColor),
+                                border: Border.all(
+                                  color: _timeError != null
+                                      ? Colors.redAccent
+                                      : borderColor,
+                                  width: _timeError != null ? 1.3 : 1.0,
+                                ),
                               ),
                               child: Row(
                                 children: [
@@ -549,6 +630,7 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                               ),
                             ),
                           ),
+                          _buildErrorText(_timeError),
                         ],
                       ),
                     ),
@@ -565,11 +647,17 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                   hint: 'Pilih jenis perawatan',
                   enabled: !_isLoading,
                   fillColor: fieldFillColor,
-                  borderColor: borderColor,
+                  borderColor:
+                      _jenisError != null ? Colors.redAccent : borderColor,
                   textStyle: TextStyle(fontSize: 14, color: textPrimary),
-                  onChanged: (val) =>
-                      setState(() => _selectedJenisPerawatan = val),
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedJenisPerawatan = val;
+                      if (_submitted) _jenisError = null;
+                    });
+                  },
                 ),
+                _buildErrorText(_jenisError),
 
                 const SizedBox(height: 16),
 
@@ -585,6 +673,7 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                     '0',
                     fillColor: fieldFillColor,
                     borderColor: borderColor,
+                    hasError: _biayaError != null,
                   ).copyWith(
                     prefixIcon: Padding(
                       padding: const EdgeInsets.only(left: 14, right: 4),
@@ -603,6 +692,7 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
                     ),
                   ),
                 ),
+                _buildErrorText(_biayaError),
 
                 const SizedBox(height: 16),
 
@@ -675,7 +765,11 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
     String hint, {
     required Color fillColor,
     required Color borderColor,
+    bool hasError = false,
   }) {
+    final activeBorderColor = hasError ? Colors.redAccent : borderColor;
+    final activeWidth = hasError ? 1.3 : 1.0;
+
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13.5),
@@ -684,11 +778,14 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: borderColor),
+        borderSide: BorderSide(color: activeBorderColor, width: activeWidth),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF004AAD), width: 1.4),
+        borderSide: BorderSide(
+          color: hasError ? Colors.redAccent : const Color(0xFF004AAD),
+          width: 1.5,
+        ),
       ),
     );
   }

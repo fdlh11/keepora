@@ -437,6 +437,12 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
   late TimeOfDay _selectedTime;
   late String _selectedJenisPerawatan;
   bool _isSaving = false;
+  bool _submitted = false;
+
+  String? _namaJadwalError;
+  String? _assetError;
+  String? _dateError;
+  String? _biayaError;
 
   late String _initialTitle;
   late String _initialAssetId;
@@ -475,6 +481,65 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
     return DateTime(now.year, now.month, now.day + 1);
   }
 
+  bool _validateForm() {
+    final namaJadwal = _namaJadwalController.text.trim();
+    final pickedDay = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+    );
+    final cleanDigits =
+        _estimasiBiayaController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final int parsedCost = int.tryParse(cleanDigits) ?? 0;
+
+    String? namaErr;
+    if (namaJadwal.isEmpty) {
+      namaErr = 'Nama jadwal wajib diisi';
+    }
+
+    String? assetErr;
+    if ((_selectedAssetId ?? '').isEmpty) {
+      assetErr = 'Nama barang wajib dipilih';
+    }
+
+    String? dateErr;
+    if (pickedDay.isBefore(_minScheduleDate)) {
+      dateErr = 'Minimal tanggal besok';
+    }
+
+    String? biayaErr;
+    if (parsedCost > 0 && parsedCost < 1000) {
+      biayaErr = 'Estimasi biaya minimal Rp 1.000 (atau Rp 0)';
+    }
+
+    setState(() {
+      _namaJadwalError = namaErr;
+      _assetError = assetErr;
+      _dateError = dateErr;
+      _biayaError = biayaErr;
+    });
+
+    return namaErr == null &&
+        assetErr == null &&
+        dateErr == null &&
+        biayaErr == null;
+  }
+
+  Widget _buildErrorText(String? errorText) {
+    if (errorText == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, left: 4),
+      child: Text(
+        errorText,
+        style: const TextStyle(
+          color: Colors.redAccent,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
   String _formatRibuan(String digits) {
     if (digits.isEmpty) return '';
     final buffer = StringBuffer();
@@ -495,6 +560,7 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
         selection: TextSelection.collapsed(offset: formatted.length),
       );
     }
+    if (_submitted) _validateForm();
   }
 
   @override
@@ -695,7 +761,12 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
         );
       },
     );
-    if (picked != null) setState(() => _selectedDate = picked);
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        if (_submitted) _validateForm();
+      });
+    }
   }
 
   Future<void> _pilihJam() async {
@@ -721,41 +792,13 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
   }
 
   Future<void> _simpanPerubahan() async {
+    setState(() => _submitted = true);
+    if (!_validateForm()) return;
+
     final namaJadwal = _namaJadwalController.text.trim();
-    if (namaJadwal.isEmpty || (_selectedAssetId ?? '').isEmpty) {
-      showTopNotif(
-        context,
-        'Nama jadwal dan nama barang wajib diisi.',
-        isError: true,
-      );
-      return;
-    }
-
-    final pickedDay = DateTime(
-      _selectedDate.year,
-      _selectedDate.month,
-      _selectedDate.day,
-    );
-    if (pickedDay.isBefore(_minScheduleDate)) {
-      showTopNotif(
-        context,
-        'Tanggal jadwal harus untuk masa mendatang (minimal besok).',
-        isError: true,
-      );
-      return;
-    }
-
     final cleanDigits =
         _estimasiBiayaController.text.replaceAll(RegExp(r'[^0-9]'), '');
     final int parsedCost = int.tryParse(cleanDigits) ?? 0;
-    if (parsedCost > 0 && parsedCost < 1000) {
-      showTopNotif(
-        context,
-        'Estimasi biaya minimal Rp 1.000 (atau isi Rp 0 jika tanpa biaya).',
-        isError: true,
-      );
-      return;
-    }
 
     setState(() => _isSaving = true);
     try {
@@ -862,9 +905,16 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                 TextField(
                   controller: _namaJadwalController,
                   style: TextStyle(fontSize: 14, color: textPrimary),
-                  decoration:
-                      _inputDecoration('Masukkan nama jadwal...', isDark),
+                  onChanged: (_) {
+                    if (_submitted) _validateForm();
+                  },
+                  decoration: _inputDecoration(
+                    'Masukkan nama jadwal...',
+                    isDark,
+                    hasError: _namaJadwalError != null,
+                  ),
                 ),
+                _buildErrorText(_namaJadwalError),
                 const SizedBox(height: 16),
                 _buildLabel('Nama Barang', isDark),
                 const SizedBox(height: 8),
@@ -897,7 +947,8 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                               : 'Pilih nama barang'),
                       enabled: !_isSaving && docs.isNotEmpty,
                       fillColor: fieldBgColor,
-                      borderColor: borderColor,
+                      borderColor:
+                          _assetError != null ? Colors.redAccent : borderColor,
                       textStyle: TextStyle(fontSize: 14, color: textPrimary),
                       onChanged: (selectedName) {
                         final idx = assetNames.indexOf(selectedName);
@@ -905,14 +956,17 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                           setState(() {
                             _selectedAssetId = docs[idx].id;
                             _selectedAssetName = selectedName;
+                            if (_submitted) _assetError = null;
                           });
                         }
                       },
                     );
                   },
                 ),
+                _buildErrorText(_assetError),
                 const SizedBox(height: 16),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       flex: 6,
@@ -930,7 +984,12 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                               decoration: BoxDecoration(
                                 color: fieldBgColor,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: borderColor),
+                                border: Border.all(
+                                  color: _dateError != null
+                                      ? Colors.redAccent
+                                      : borderColor,
+                                  width: _dateError != null ? 1.3 : 1.0,
+                                ),
                               ),
                               child: Row(
                                 children: [
@@ -953,6 +1012,7 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                               ),
                             ),
                           ),
+                          _buildErrorText(_dateError),
                         ],
                       ),
                     ),
@@ -1025,7 +1085,11 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onChanged: _onBiayaChanged,
                   style: TextStyle(fontSize: 14, color: textPrimary),
-                  decoration: _inputDecoration('0', isDark).copyWith(
+                  decoration: _inputDecoration(
+                    '0',
+                    isDark,
+                    hasError: _biayaError != null,
+                  ).copyWith(
                     prefixIcon: Padding(
                       padding: const EdgeInsets.only(left: 14, right: 4),
                       child: Text(
@@ -1043,6 +1107,7 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
                     ),
                   ),
                 ),
+                _buildErrorText(_biayaError),
                 const SizedBox(height: 16),
                 _buildLabel('Catatan Tambahan (Opsional)', isDark),
                 const SizedBox(height: 8),
@@ -1104,7 +1169,16 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(String hint, bool isDark) {
+  InputDecoration _inputDecoration(
+    String hint,
+    bool isDark, {
+    bool hasError = false,
+  }) {
+    final defaultBorderColor =
+        isDark ? Colors.grey.shade800 : Colors.grey.shade400;
+    final activeBorderColor = hasError ? Colors.redAccent : defaultBorderColor;
+    final activeWidth = hasError ? 1.3 : 1.0;
+
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13.5),
@@ -1113,13 +1187,14 @@ class _EditJadwalScreenState extends State<EditJadwalScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: isDark ? Colors.grey.shade800 : Colors.grey.shade400,
-        ),
+        borderSide: BorderSide(color: activeBorderColor, width: activeWidth),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF004AAD), width: 1.4),
+        borderSide: BorderSide(
+          color: hasError ? Colors.redAccent : const Color(0xFF004AAD),
+          width: 1.5,
+        ),
       ),
     );
   }

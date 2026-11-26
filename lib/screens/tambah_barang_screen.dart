@@ -17,7 +17,6 @@ class TambahBarangScreen extends StatefulWidget {
 }
 
 class _TambahBarangScreenState extends State<TambahBarangScreen> {
-  final _formKey = GlobalKey<FormState>();
   final AssetService _assetService = AssetService();
   final ImagePicker _picker = ImagePicker();
 
@@ -33,6 +32,14 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
   DateTime? _purchaseDate;
   DateTime? _secondHandPurchaseDate;
   bool _isSaving = false;
+  bool _submitted = false;
+
+  String? _nameError;
+  String? _categoryError;
+  String? _purchaseDateError;
+  String? _priceError;
+  String? _conditionError;
+  String? _conditionDetailError;
 
   final List<String> _categories = const [
     'Elektronik',
@@ -99,6 +106,77 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
       default:
         return 'Jelaskan rincian kondisi barang...';
     }
+  }
+
+  bool _validateForm() {
+    final name = _nameController.text.trim();
+    final rawPrice =
+        _priceController.text.replaceAll(RegExp(r'[^0-9]'), '').trim();
+    final int parsedPrice = int.tryParse(rawPrice) ?? 0;
+    final condDetail = _conditionDetailController.text.trim();
+
+    String? nameErr;
+    if (name.isEmpty) {
+      nameErr = 'Nama barang wajib diisi';
+    }
+
+    String? categoryErr;
+    if (_selectedCategory == null || _selectedCategory!.isEmpty) {
+      categoryErr = 'Kategori barang wajib dipilih';
+    }
+
+    String? dateErr;
+    if (_purchaseDate == null && _secondHandPurchaseDate == null) {
+      dateErr = 'Tanggal pembelian wajib dipilih';
+    }
+
+    String? priceErr;
+    if (rawPrice.isEmpty) {
+      priceErr = 'Wajib diisi';
+    } else if (parsedPrice > 0 && parsedPrice < 1000) {
+      priceErr = 'Min. Rp 1.000 / 0';
+    }
+
+    String? condErr;
+    if (_selectedCondition == null || _selectedCondition!.isEmpty) {
+      condErr = 'Kondisi barang wajib dipilih';
+    }
+
+    String? condDetailErr;
+    if (condDetail.isEmpty) {
+      condDetailErr = 'Rincian kondisi barang wajib diisi';
+    }
+
+    setState(() {
+      _nameError = nameErr;
+      _categoryError = categoryErr;
+      _purchaseDateError = dateErr;
+      _priceError = priceErr;
+      _conditionError = condErr;
+      _conditionDetailError = condDetailErr;
+    });
+
+    return nameErr == null &&
+        categoryErr == null &&
+        dateErr == null &&
+        priceErr == null &&
+        condErr == null &&
+        condDetailErr == null;
+  }
+
+  Widget _buildErrorText(String? errorText) {
+    if (errorText == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, left: 4),
+      child: Text(
+        errorText,
+        style: const TextStyle(
+          color: Colors.redAccent,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -448,62 +526,18 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
           _purchaseDate = picked;
           _secondHandPurchaseDate = null;
         }
+        if (_submitted) _purchaseDateError = null;
       });
     }
   }
 
   Future<void> _saveAsset() async {
+    setState(() => _submitted = true);
+    if (!_validateForm()) return;
+
     final rawPriceCheck =
         _priceController.text.replaceAll(RegExp(r'[^0-9]'), '').trim();
     final int parsedPrice = int.tryParse(rawPriceCheck) ?? 0;
-    if (parsedPrice > 0 && parsedPrice < 1000) {
-      _formKey.currentState?.validate();
-      showTopNotif(
-        context,
-        'Harga beli minimal Rp 1.000 (atau isi Rp 0 jika gratis).',
-        isError: true,
-      );
-      return;
-    }
-
-    if (!_formKey.currentState!.validate()) return;
-
-    if (_selectedCategory == null) {
-      showTopNotif(
-        context,
-        'Silakan pilih kategori barang terlebih dahulu.',
-        isError: true,
-      );
-      return;
-    }
-
-    if (_purchaseDate == null && _secondHandPurchaseDate == null) {
-      showTopNotif(
-        context,
-        'Silakan pilih Tanggal Beli (baru) atau Tanggal Pembelian (Barang Second).',
-        isError: true,
-      );
-      return;
-    }
-
-    if (_selectedCondition == null) {
-      showTopNotif(
-        context,
-        'Silakan pilih kondisi barang terlebih dahulu.',
-        isError: true,
-      );
-      return;
-    }
-
-    if (_selectedCondition != 'Bagus' &&
-        _conditionDetailController.text.trim().isEmpty) {
-      showTopNotif(
-        context,
-        'Harap isi rincian kondisi untuk barang dengan status $_selectedCondition.',
-        isError: true,
-      );
-      return;
-    }
 
     setState(() => _isSaving = true);
 
@@ -555,7 +589,11 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
     Widget? prefixIcon,
     required Color fillColor,
     required Color borderColor,
+    bool hasError = false,
   }) {
+    final activeBorderColor = hasError ? Colors.redAccent : borderColor;
+    final activeWidth = hasError ? 1.3 : 1.0;
+
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
@@ -566,23 +604,18 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: borderColor),
+        borderSide: BorderSide(color: activeBorderColor, width: activeWidth),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: borderColor),
+        borderSide: BorderSide(color: activeBorderColor, width: activeWidth),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF004AAD), width: 1.4),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1.2),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        borderSide: BorderSide(
+          color: hasError ? Colors.redAccent : const Color(0xFF004AAD),
+          width: 1.5,
+        ),
       ),
     );
   }
@@ -635,464 +668,503 @@ class _TambahBarangScreenState extends State<TambahBarangScreen> {
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  InkWell(
-                    onTap: _isSaving ? null : _showImageSourceSheet,
-                    borderRadius: BorderRadius.circular(14),
-                    child: Container(
-                      width: double.infinity,
-                      height: _selectedImage != null ? 190 : null,
-                      padding: _selectedImage != null
-                          ? EdgeInsets.zero
-                          : const EdgeInsets.symmetric(vertical: 22),
-                      decoration: BoxDecoration(
-                        color: fieldFillColor,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: borderColor,
-                          width: 1,
-                        ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InkWell(
+                  onTap: _isSaving ? null : _showImageSourceSheet,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    width: double.infinity,
+                    height: _selectedImage != null ? 190 : null,
+                    padding: _selectedImage != null
+                        ? EdgeInsets.zero
+                        : const EdgeInsets.symmetric(vertical: 22),
+                    decoration: BoxDecoration(
+                      color: fieldFillColor,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: borderColor,
+                        width: 1,
                       ),
-                      child: _selectedImage != null
-                          ? Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(13),
-                                  child: Image.file(
-                                    _selectedImage!,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                                Positioned(
-                                  right: 10,
-                                  bottom: 10,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.65),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.edit,
-                                          size: 14,
-                                          color: Colors.white,
-                                        ),
-                                        SizedBox(width: 5),
-                                        Text(
-                                          'Ganti Foto',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : Column(
-                              children: [
-                                Icon(
-                                  Icons.photo_camera_outlined,
-                                  size: 36,
-                                  color: accentBlue,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Unggah Foto Barang',
-                                  style: GoogleFonts.montserrat(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.bold,
-                                    color: accentBlue,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Ambil Foto atau Pilih dari Galeri',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'Nama Barang',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.bold,
-                      color: textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _nameController,
-                    style: TextStyle(fontSize: 13.5, color: textPrimary),
-                    validator: (val) => (val == null || val.trim().isEmpty)
-                        ? 'Nama barang wajib diisi'
-                        : null,
-                    decoration: _inputDecoration(
-                      'Masukkan nama barang...',
-                      fillColor: fieldFillColor,
-                      borderColor: borderColor,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Pilih Kategori',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.bold,
-                      color: textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  CustomAppDropdown(
-                    value: _selectedCategory,
-                    items: _categories,
-                    hint: 'Pilih Kategori Barang...',
-                    enabled: !_isSaving,
-                    fillColor: fieldFillColor,
-                    borderColor: borderColor,
-                    textStyle: TextStyle(fontSize: 13.5, color: textPrimary),
-                    onChanged: (val) => setState(() => _selectedCategory = val),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 6,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Tanggal Pembelian',
-                              style: GoogleFonts.montserrat(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.bold,
-                                color: isRegularDisabled
-                                    ? Colors.grey.shade500
-                                    : textPrimary,
+                    child: _selectedImage != null
+                        ? Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(13),
+                                child: Image.file(
+                                  _selectedImage!,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            InkWell(
-                              onTap: isRegularDisabled
-                                  ? null
-                                  : () => _pickDate(isSecondHand: false),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 14,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isRegularDisabled
-                                      ? disabledFillColor
-                                      : fieldFillColor,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: borderColor,
+                              Positioned(
+                                right: 10,
+                                bottom: 10,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
                                   ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        isRegularDisabled
-                                            ? 'Barang second dipilih'
-                                            : (_purchaseDate == null
-                                                ? 'Tanggal pembelian...'
-                                                : _formatTanggalIndo(
-                                                    _purchaseDate!)),
-                                        style: TextStyle(
-                                          fontSize: 12.5,
-                                          color: isRegularDisabled ||
-                                                  _purchaseDate == null
-                                              ? Colors.grey.shade500
-                                              : textPrimary,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    if (_purchaseDate != null)
-                                      GestureDetector(
-                                        onTap: () => setState(
-                                            () => _purchaseDate = null),
-                                        child: Padding(
-                                          padding:
-                                              const EdgeInsets.only(right: 4),
-                                          child: Icon(
-                                            Icons.close_rounded,
-                                            size: 17,
-                                            color: Colors.red.shade400,
-                                          ),
-                                        ),
-                                      )
-                                    else ...[
-                                      const SizedBox(width: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.65),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
                                       Icon(
-                                        Icons.calendar_today_outlined,
-                                        size: 17,
-                                        color: isRegularDisabled
-                                            ? Colors.grey.shade600
-                                            : textSecondary,
+                                        Icons.edit,
+                                        size: 14,
+                                        color: Colors.white,
+                                      ),
+                                      SizedBox(width: 5),
+                                      Text(
+                                        'Ganti Foto',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ],
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 4,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Harga Beli',
-                              style: GoogleFonts.montserrat(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.bold,
-                                color: textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            TextFormField(
-                              controller: _priceController,
-                              keyboardType: TextInputType.number,
-                              style:
-                                  TextStyle(fontSize: 13, color: textPrimary),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                                _RibuanFormatter(),
-                              ],
-                              validator: (val) {
-                                final raw = (val ?? '').trim();
-                                if (raw.isEmpty) return 'Wajib diisi';
-                                final digits =
-                                    raw.replaceAll(RegExp(r'[^0-9]'), '');
-                                final price = int.tryParse(digits) ?? 0;
-                                if (price > 0 && price < 1000) {
-                                  return 'Min. Rp 1.000 / 0';
-                                }
-                                return null;
-                              },
-                              decoration: _inputDecoration(
-                                '0',
-                                prefixIcon: Padding(
-                                  padding: const EdgeInsets.only(
-                                    left: 14,
-                                    right: 4,
-                                  ),
-                                  child: Text(
-                                    'Rp',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: textPrimary,
-                                    ),
                                   ),
                                 ),
-                                fillColor: fieldFillColor,
-                                borderColor: borderColor,
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                            ],
+                          )
+                        : Column(
+                            children: [
+                              Icon(
+                                Icons.photo_camera_outlined,
+                                size: 36,
+                                color: accentBlue,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Unggah Foto Barang',
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: accentBlue,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Ambil Foto atau Pilih dari Galeri',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Kondisi Barang',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.bold,
-                      color: textPrimary,
-                    ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'Nama Barang',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                    color: textPrimary,
                   ),
-                  const SizedBox(height: 6),
-                  CustomAppDropdown(
-                    value: _selectedCondition,
-                    items: _conditionOptions,
-                    hint: 'Pilih Kondisi Barang...',
-                    enabled: !_isSaving,
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _nameController,
+                  style: TextStyle(fontSize: 13.5, color: textPrimary),
+                  onChanged: (_) {
+                    if (_submitted) _validateForm();
+                  },
+                  decoration: _inputDecoration(
+                    'Masukkan nama barang...',
                     fillColor: fieldFillColor,
                     borderColor: borderColor,
-                    textStyle: TextStyle(fontSize: 13.5, color: textPrimary),
-                    onChanged: (val) =>
-                        setState(() => _selectedCondition = val),
+                    hasError: _nameError != null,
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Rincian Kondisi Barang',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.bold,
-                      color: textPrimary,
-                    ),
+                ),
+                _buildErrorText(_nameError),
+                const SizedBox(height: 16),
+                Text(
+                  'Pilih Kategori',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                    color: textPrimary,
                   ),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _conditionDetailController,
-                    maxLines: 3,
-                    minLines: 2,
-                    style: TextStyle(fontSize: 13.5, color: textPrimary),
-                    decoration: _inputDecoration(
-                      _getConditionDetailHint(),
-                      fillColor: fieldFillColor,
-                      borderColor: borderColor,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Tanggal Pembelian (Barang Second)',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.bold,
-                      color: isSecondHandDisabled
-                          ? Colors.grey.shade500
-                          : textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  InkWell(
-                    onTap: isSecondHandDisabled
-                        ? null
-                        : () => _pickDate(isSecondHand: true),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSecondHandDisabled
-                            ? disabledFillColor
-                            : fieldFillColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: borderColor),
-                      ),
-                      child: Row(
+                ),
+                const SizedBox(height: 6),
+                CustomAppDropdown(
+                  value: _selectedCategory,
+                  items: _categories,
+                  hint: 'Pilih Kategori Barang...',
+                  enabled: !_isSaving,
+                  fillColor: fieldFillColor,
+                  borderColor:
+                      _categoryError != null ? Colors.redAccent : borderColor,
+                  textStyle: TextStyle(fontSize: 13.5, color: textPrimary),
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedCategory = val;
+                      if (_submitted) _categoryError = null;
+                    });
+                  },
+                ),
+                _buildErrorText(_categoryError),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 6,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              isSecondHandDisabled
-                                  ? 'Tanggal pembelian (barang baru) sudah dipilih'
-                                  : (_secondHandPurchaseDate == null
-                                      ? 'Pilih tanggal pembelian BS...'
-                                      : _formatTanggalIndo(
-                                          _secondHandPurchaseDate!)),
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isSecondHandDisabled ||
-                                        _secondHandPurchaseDate == null
-                                    ? Colors.grey.shade500
-                                    : textPrimary,
+                          Text(
+                            'Tanggal Pembelian',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.bold,
+                              color: isRegularDisabled
+                                  ? Colors.grey.shade500
+                                  : textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          InkWell(
+                            onTap: isRegularDisabled
+                                ? null
+                                : () => _pickDate(isSecondHand: false),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isRegularDisabled
+                                    ? disabledFillColor
+                                    : fieldFillColor,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: (_purchaseDateError != null &&
+                                          !isRegularDisabled)
+                                      ? Colors.redAccent
+                                      : borderColor,
+                                  width: (_purchaseDateError != null &&
+                                          !isRegularDisabled)
+                                      ? 1.3
+                                      : 1.0,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      isRegularDisabled
+                                          ? 'Barang second dipilih'
+                                          : (_purchaseDate == null
+                                              ? 'Tanggal pembelian...'
+                                              : _formatTanggalIndo(
+                                                  _purchaseDate!)),
+                                      style: TextStyle(
+                                        fontSize: 12.5,
+                                        color: isRegularDisabled ||
+                                                _purchaseDate == null
+                                            ? Colors.grey.shade500
+                                            : textPrimary,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (_purchaseDate != null)
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _purchaseDate = null;
+                                          if (_submitted) _validateForm();
+                                        });
+                                      },
+                                      child: Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 4),
+                                        child: Icon(
+                                          Icons.close_rounded,
+                                          size: 17,
+                                          color: Colors.red.shade400,
+                                        ),
+                                      ),
+                                    )
+                                  else ...[
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.calendar_today_outlined,
+                                      size: 17,
+                                      color: isRegularDisabled
+                                          ? Colors.grey.shade600
+                                          : textSecondary,
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
                           ),
-                          if (_secondHandPurchaseDate != null)
-                            GestureDetector(
-                              onTap: () => setState(
-                                  () => _secondHandPurchaseDate = null),
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 6),
-                                child: Icon(
-                                  Icons.close_rounded,
-                                  size: 18,
-                                  color: Colors.red.shade400,
-                                ),
-                              ),
-                            )
-                          else
-                            Icon(
-                              Icons.calendar_today_outlined,
-                              size: 18,
-                              color: isSecondHandDisabled
-                                  ? Colors.grey.shade600
-                                  : textSecondary,
-                            ),
+                          if (!isRegularDisabled)
+                            _buildErrorText(_purchaseDateError),
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Catatan Tambahan (Opsional)',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.bold,
-                      color: textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _notesController,
-                    maxLines: 3,
-                    minLines: 2,
-                    style: TextStyle(fontSize: 13.5, color: textPrimary),
-                    decoration: _inputDecoration(
-                      'Masukkan Catatan Tambahan (opsional)...',
-                      fillColor: fieldFillColor,
-                      borderColor: borderColor,
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isSaving ? null : _saveAsset,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryBlue,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: _isSaving
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2.5,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Harga Beli',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.bold,
+                              color: textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _priceController,
+                            keyboardType: TextInputType.number,
+                            style:
+                                TextStyle(fontSize: 13, color: textPrimary),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              _RibuanFormatter(),
+                            ],
+                            onChanged: (_) {
+                              if (_submitted) _validateForm();
+                            },
+                            decoration: _inputDecoration(
+                              '0',
+                              prefixIcon: Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 14,
+                                  right: 4,
+                                ),
+                                child: Text(
+                                  'Rp',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: textPrimary,
+                                  ),
+                                ),
                               ),
-                            )
-                          : Text(
-                              'Tambah Barang',
-                              style: GoogleFonts.montserrat(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
+                              fillColor: fieldFillColor,
+                              borderColor: borderColor,
+                              hasError: _priceError != null,
+                            ),
+                          ),
+                          _buildErrorText(_priceError),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Kondisi Barang',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                    color: textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                CustomAppDropdown(
+                  value: _selectedCondition,
+                  items: _conditionOptions,
+                  hint: 'Pilih Kondisi Barang...',
+                  enabled: !_isSaving,
+                  fillColor: fieldFillColor,
+                  borderColor:
+                      _conditionError != null ? Colors.redAccent : borderColor,
+                  textStyle: TextStyle(fontSize: 13.5, color: textPrimary),
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedCondition = val;
+                      if (_submitted) _validateForm();
+                    });
+                  },
+                ),
+                _buildErrorText(_conditionError),
+                const SizedBox(height: 16),
+                Text(
+                  'Rincian Kondisi Barang',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                    color: textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _conditionDetailController,
+                  maxLines: 3,
+                  minLines: 2,
+                  style: TextStyle(fontSize: 13.5, color: textPrimary),
+                  onChanged: (_) {
+                    if (_submitted) _validateForm();
+                  },
+                  decoration: _inputDecoration(
+                    _getConditionDetailHint(),
+                    fillColor: fieldFillColor,
+                    borderColor: borderColor,
+                    hasError: _conditionDetailError != null,
+                  ),
+                ),
+                _buildErrorText(_conditionDetailError),
+                const SizedBox(height: 16),
+                Text(
+                  'Tanggal Pembelian (Barang Second)',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                    color: isSecondHandDisabled
+                        ? Colors.grey.shade500
+                        : textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                InkWell(
+                  onTap: isSecondHandDisabled
+                      ? null
+                      : () => _pickDate(isSecondHand: true),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSecondHandDisabled
+                          ? disabledFillColor
+                          : fieldFillColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: (_purchaseDateError != null &&
+                                !isSecondHandDisabled)
+                            ? Colors.redAccent
+                            : borderColor,
+                        width: (_purchaseDateError != null &&
+                                !isSecondHandDisabled)
+                            ? 1.3
+                            : 1.0,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            isSecondHandDisabled
+                                ? 'Tanggal pembelian (barang baru) sudah dipilih'
+                                : (_secondHandPurchaseDate == null
+                                    ? 'Pilih tanggal pembelian BS...'
+                                    : _formatTanggalIndo(
+                                        _secondHandPurchaseDate!)),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isSecondHandDisabled ||
+                                      _secondHandPurchaseDate == null
+                                  ? Colors.grey.shade500
+                                  : textPrimary,
+                            ),
+                          ),
+                        ),
+                        if (_secondHandPurchaseDate != null)
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _secondHandPurchaseDate = null;
+                                if (_submitted) _validateForm();
+                              });
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 18,
+                                color: Colors.red.shade400,
                               ),
                             ),
+                          )
+                        else
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            size: 18,
+                            color: isSecondHandDisabled
+                                ? Colors.grey.shade600
+                                : textSecondary,
+                          ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+                if (!isSecondHandDisabled && _purchaseDate == null)
+                  _buildErrorText(_purchaseDateError),
+                const SizedBox(height: 16),
+                Text(
+                  'Catatan Tambahan (Opsional)',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                    color: textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _notesController,
+                  maxLines: 3,
+                  minLines: 2,
+                  style: TextStyle(fontSize: 13.5, color: textPrimary),
+                  decoration: _inputDecoration(
+                    'Masukkan Catatan Tambahan (opsional)...',
+                    fillColor: fieldFillColor,
+                    borderColor: borderColor,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isSaving ? null : _saveAsset,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryBlue,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: _isSaving
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Text(
+                            'Tambah Barang',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
