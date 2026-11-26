@@ -165,15 +165,16 @@ class NotificationService {
       final now = tz.TZDateTime.now(tz.local);
       final targetTime = tz.TZDateTime.from(scheduledAt, tz.local);
       final baseId = _baseIdFromScheduleId(scheduleId);
+      final lowerType = maintenanceType.toLowerCase();
 
       // 1. Pengingat H-1 (24 jam sebelum jadwal)
       final reminderH1 = targetTime.subtract(const Duration(days: 1));
       if (reminderH1.isAfter(now)) {
         await _plugin.zonedSchedule(
           id: baseId + 1,
-          title: 'H-1: $title',
+          title: 'Besok Jadwal $maintenanceType $assetName',
           body:
-              '$maintenanceType untuk $assetName dijadwalkan besok pukul ${_formatJam(scheduledAt)} WIB.',
+              'Jangan lupa, besok pukul ${_formatJam(scheduledAt)} WIB ada jadwal "$title". Siapkan keperluannya dari sekarang!',
           scheduledDate: reminderH1,
           notificationDetails: _notificationDetails(),
           androidScheduleMode: scheduleMode,
@@ -185,8 +186,9 @@ class NotificationService {
       if (targetTime.isAfter(now)) {
         await _plugin.zonedSchedule(
           id: baseId,
-          title: 'Waktunya $maintenanceType!',
-          body: 'Jadwal "$title" untuk barang $assetName dimulai sekarang.',
+          title: 'Waktunya $maintenanceType $assetName!',
+          body:
+              'Jadwal "$title" sudah tiba. Jangan lupa untuk melakukan $lowerType sekarang.',
           scheduledDate: targetTime,
           notificationDetails: _notificationDetails(),
           androidScheduleMode: scheduleMode,
