@@ -164,11 +164,10 @@ class _UbahPasswordScreenState extends State<UbahPasswordScreen> {
   }
 
   bool _isValidNewPassword(String pass) {
-    if (pass.length < 8) return false;
-    final hasUpper = RegExp(r'[A-Z]').hasMatch(pass);
-    final hasLower = RegExp(r'[a-z]').hasMatch(pass);
+    if (pass.length < 6) return false;
+    final hasLetter = RegExp(r'[A-Za-z]').hasMatch(pass);
     final hasDigit = RegExp(r'[0-9]').hasMatch(pass);
-    return hasUpper && hasLower && hasDigit;
+    return hasLetter && hasDigit;
   }
 
   Future<void> _submitChangePassword() async {
@@ -187,7 +186,7 @@ class _UbahPasswordScreenState extends State<UbahPasswordScreen> {
     if (!_isValidNewPassword(newPass)) {
       showTopNotif(
         context,
-        'Password baru minimal 8 karakter dengan kombinasi huruf kapital, huruf kecil, dan angka.',
+        'Password baru minimal 6 karakter dengan kombinasi huruf dan angka.',
         isError: true,
       );
       return;
@@ -530,12 +529,12 @@ class _UbahPasswordScreenState extends State<UbahPasswordScreen> {
                 ),
                 const SizedBox(height: 6),
                 _buildRequirementItem(
-                  'Minimal 8 karakter',
+                  'Minimal 6 karakter',
                   textSecondary,
                 ),
                 const SizedBox(height: 3),
                 _buildRequirementItem(
-                  'Kombinasi huruf kapital, huruf kecil & angka',
+                  'Kombinasi huruf dan angka',
                   textSecondary,
                 ),
                 const SizedBox(height: 3),
