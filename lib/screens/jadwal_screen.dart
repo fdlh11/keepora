@@ -16,6 +16,7 @@ class JadwalScreen extends StatefulWidget {
 class _JadwalScreenState extends State<JadwalScreen> {
   final JadwalService _jadwalService = JadwalService();
   late final PageController _calendarPageController;
+  late final Stream<QuerySnapshot> _jadwalStream;
 
   static const double _weekRowHeight = 38.0;
 
@@ -70,6 +71,8 @@ class _JadwalScreenState extends State<JadwalScreen> {
   @override
   void initState() {
     super.initState();
+    _jadwalStream = _jadwalService.streamJadwalAktif();
+
     final now = DateTime.now();
     _selectedDate = DateTime(now.year, now.month, now.day);
     _focusedMonth = DateTime(now.year, now.month, 1);
@@ -112,10 +115,6 @@ class _JadwalScreenState extends State<JadwalScreen> {
     }
   }
 
-  /// Logika warna dinamis berdasarkan kedekatan hari H:
-  /// - <= 10 hari (termasuk hari ini & terlewat): Merah
-  /// - 11 s/d 20 hari: Oranye
-  /// - >= 21 hari: Hijau
   ({Color bg, Color text, Color border}) _getCountdownBadgeStyle(
     DateTime scheduledAt,
     bool isDark,
@@ -180,14 +179,14 @@ class _JadwalScreenState extends State<JadwalScreen> {
     return targetWeekIndex ~/ 2;
   }
 
-  void _scrollToSelectedTwoWeeks({bool animate = true}) {
+  void _scrollToSelectedTwoWeeks({bool animate = false}) {
     if (!_calendarPageController.hasClients) return;
 
     final targetPage = _getTargetTwoWeekPageIndex();
     if (animate) {
       _calendarPageController.animateToPage(
         targetPage,
-        duration: const Duration(milliseconds: 280),
+        duration: const Duration(milliseconds: 240),
         curve: Curves.easeOutCubic,
       );
     } else {
@@ -208,7 +207,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToSelectedTwoWeeks(animate: true);
+      _scrollToSelectedTwoWeeks(animate: false);
     });
   }
 
@@ -234,6 +233,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
 
           return Expanded(
             child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () {
                 final changedMonth = date.month != _focusedMonth.month ||
                     date.year != _focusedMonth.year;
@@ -243,7 +243,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
                 });
                 if (changedMonth) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _scrollToSelectedTwoWeeks(animate: true);
+                    _scrollToSelectedTwoWeeks(animate: false);
                   });
                 }
               },
@@ -329,9 +329,10 @@ class _JadwalScreenState extends State<JadwalScreen> {
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _jadwalService.streamJadwalAktif(),
+        stream: _jadwalStream,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              !snapshot.hasData) {
             return const Center(
               child: CircularProgressIndicator(color: primaryBlue),
             );

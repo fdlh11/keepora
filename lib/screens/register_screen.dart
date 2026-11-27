@@ -71,6 +71,13 @@ class _RegisterScreenState extends State<RegisterScreen>
     return emailRegex.hasMatch(value);
   }
 
+  bool _isValidPassword(String pass) {
+    if (pass.length < 6) return false;
+    final hasLetter = RegExp(r'[A-Za-z]').hasMatch(pass);
+    final hasDigit = RegExp(r'[0-9]').hasMatch(pass);
+    return hasLetter && hasDigit;
+  }
+
   void _handleRegister() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -115,10 +122,10 @@ class _RegisterScreenState extends State<RegisterScreen>
       return;
     }
 
-    if (password.length < 6) {
+    if (!_isValidPassword(password)) {
       showTopNotif(
         context,
-        'Password minimal 6 karakter.',
+        'Password minimal 6 karakter dengan kombinasi huruf dan angka.',
         isError: true,
       );
       _passwordFocus.requestFocus();
@@ -378,6 +385,14 @@ class _RegisterScreenState extends State<RegisterScreen>
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(color: Colors.white),
                             ),
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        const Text(
+                          'Minimal 6 karakter, kombinasi huruf dan angka.',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: Colors.white70,
                           ),
                         ),
                         const SizedBox(height: 12),
