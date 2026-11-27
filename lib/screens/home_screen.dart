@@ -124,17 +124,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return '$diffDays Hari Lagi';
   }
 
-  String _formatOverdueDuration(DateTime scheduledAt) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final target =
-        DateTime(scheduledAt.year, scheduledAt.month, scheduledAt.day);
-    final diffDays = today.difference(target).inDays;
-
-    if (diffDays <= 0) return 'Terlewat hari ini';
-    return 'Terlambat $diffDays hari';
-  }
-
   void _showOverdueMaintenanceDialog(
     List<QueryDocumentSnapshot> overdueDocs,
   ) {
@@ -146,14 +135,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final textPrimary = isDark ? Colors.white : const Color(0xFF1E1E1E);
     final textSecondary =
         isDark ? Colors.grey.shade300 : const Color(0xFF4B5563);
+    final alertRed =
+        isDark ? const Color.fromARGB(255, 255, 0, 0) : const Color.fromARGB(255, 255, 0, 0);
 
-    final firstData =
-        overdueDocs.first.data() as Map<String, dynamic>? ?? {};
-    final String firstTitle =
-        (firstData['title'] ?? 'Perawatan Terjadwal').toString();
-    final String firstAsset =
-        (firstData['assetName'] ?? 'Barang Pribadi').toString();
-    final DateTime? firstDate = _parseScheduleDate(firstData);
     final int totalOverdue = overdueDocs.length;
 
     showGeneralDialog(
@@ -167,143 +151,49 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Dialog(
             insetPadding: const EdgeInsets.symmetric(horizontal: 24),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(24),
             ),
             backgroundColor: dialogBg,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF7F1D1D).withValues(alpha: 0.35)
-                          : const Color(0xFFFEE2E2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.warning_amber_rounded,
-                      size: 32,
-                      color: isDark
-                          ? const Color(0xFFFCA5A5)
-                          : const Color(0xFFDC2626),
-                    ),
+                  Icon(
+                    Icons.report_problem_outlined,
+                    size: 64,
+                    color: alertRed,
                   ),
-                  const SizedBox(height: 14),
-                  Text(
-                    totalOverdue == 1
-                        ? 'Jadwal Perawatan Terlewat'
-                        : 'Ada $totalOverdue Jadwal Terlewat',
+                  const SizedBox(height: 12),
+                  RichText(
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.montserrat(
-                      fontSize: 17.5,
-                      fontWeight: FontWeight.bold,
-                      color: textPrimary,
+                    text: TextSpan(
+                      style: GoogleFonts.montserrat(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: textPrimary,
+                      ),
+                      children: [
+                        TextSpan(text: '$totalOverdue Jadwal '),
+                        TextSpan(
+                          text: 'Terlewatkan',
+                          style: TextStyle(color: alertRed),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    totalOverdue == 1
-                        ? 'Anda memiliki 1 jadwal perawatan yang sudah melewati tenggat dan belum ditandai selesai:'
-                        : 'Anda memiliki $totalOverdue jadwal perawatan yang melewati tenggat. Segera cek atau tandai selesai:',
+                    'Segera kerjakan perawatan yang belum dilakukan dan tandai selesai di Jadwal.',
                     textAlign: TextAlign.center,
+                    maxLines: 2,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 12.5,
                       color: textSecondary,
                       height: 1.4,
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF262626)
-                          : const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: isDark
-                            ? const Color(0xFFDC2626).withValues(alpha: 0.45)
-                            : const Color(0xFFFECACA),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                firstTitle,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.montserrat(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: textPrimary,
-                                ),
-                              ),
-                            ),
-                            if (firstDate != null) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? const Color(0xFF7F1D1D)
-                                          .withValues(alpha: 0.45)
-                                      : const Color(0xFFFEE2E2),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  _formatOverdueDuration(firstDate),
-                                  style: TextStyle(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark
-                                        ? const Color(0xFFFCA5A5)
-                                        : const Color(0xFFDC2626),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          firstAsset,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w500,
-                            color: textSecondary,
-                          ),
-                        ),
-                        if (totalOverdue > 1) ...[
-                          const SizedBox(height: 6),
-                          Text(
-                            '+ ${totalOverdue - 1} jadwal terlewat lainnya',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? const Color(0xFF60A5FA)
-                                  : primaryBlue,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 22),
                   Row(
                     children: [
                       Expanded(
@@ -324,16 +214,16 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             child: const Text(
-                              'Nanti Saja',
+                              'Nanti',
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 13.5,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: SizedBox(
                           height: 44,
@@ -353,7 +243,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: const Text(
                               'Lihat Jadwal',
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 13.5,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
